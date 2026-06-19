@@ -1,0 +1,61 @@
+# Third-Party Notices
+
+## Meta Quest Touch Plus Controller 3D Model
+
+本プラグインは、VR 内でユーザーの Meta Quest Touch Plus コントローラを表すために、
+Meta 公式の「Meta Quest Hardware Art」(v1.8) に含まれる Touch Plus コントローラの
+3D モデル（メッシュ + テクスチャ）を同梱しています。
+
+License (Oculus lineart attribution.txt より):
+
+  You may use these images solely for referring to the corresponding product in your
+  video game or VR experience (including manuals for users). Otherwise, you may not use
+  these images, or any Oculus trademarks, logos or other intellectual property, including
+  but not limited to use on merchandise or other product such as clothing, hats, or mugs.
+  Do not use the Oculus images in a way that implies a partnership, sponsorship or
+  endorsement; or features Oculus on materials associated with pornography, illegal
+  activities, or other materials that violate Oculus Terms.
+
+  THE IMAGES ARE PROVIDED TO YOU ON AN "AS IS" BASIS AND YOU ARE SOLELY RESPONSIBLE FOR
+  YOUR USE OF THE IMAGES. OCULUS DISCLAIMS ALL WARRANTIES REGARDING THE IMAGES, INCLUDING
+  WARRANTIES OF NON-INFRINGEMENT. OCULUS SHALL NOT BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, CONSEQUENTIAL OR PUNITIVE DAMAGES ARISING FROM OR RELATED TO YOUR
+  USE OF THE IMAGES.
+
+本同梱は「VR experience で当該製品を表すための利用」に該当します。
+Oculus / Meta の名称・商標・ロゴは本プラグインのブランディングには使用していません。
+
+## Hand 3D Model
+
+本プラグインは、VR 内でユーザーの手を表すために、以下の 3D モデル（メッシュ）を
+同梱しています。bundle 化の際にマテリアルを差し替え、片手モデルを mirror して左右を生成しています。
+
+  Hand for VR by FFeller (Sketchfab)
+  https://sketchfab.com/3d-models/hand-for-vr-bee4147a048e41aeb70158f430178009
+  Licensed under Creative Commons Attribution 4.0 International (CC-BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+  Modified: re-materialized (unlit shader), mirrored for the opposite hand, baked into an AssetBundle.
+
+## iPhone 3D Model
+
+本プラグインは、Cheki ミニゲーム中にユーザーの手元へカメラ（スマートフォン）を表示するために、以下の
+3D モデル（メッシュ）を同梱しています。テクスチャを持たないモデルのため、bundle 化の際に
+各パーツのマテリアル色を unlit シェーダへ転写しています。
+
+  IPHONE X LOWPOLY by FredDrabble (Sketchfab)
+  https://sketchfab.com/3d-models/iphone-x-lowpoly-3067c70fb7d14bd3b2b03e3246d6052d
+  Licensed under Creative Commons Attribution 4.0 International (CC-BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+  Modified: re-materialized (unlit shader, per-submesh color copy), baked into an AssetBundle.
+
+## Tambourine 3D Model
+
+本プラグインは、カラオケ ミニゲーム中にユーザーの左手へタンバリンを表示するために、以下の
+3D モデル（メッシュ）を同梱しています。テクスチャを持たないモデルのため、bundle 化の際に
+各パーツのマテリアル色を unlit シェーダへ転写しています。
+
+  Tamborine from Poly by Google by IronEqual (Sketchfab; originally from Poly by Google)
+  https://sketchfab.com/3d-models/b2509c183e404a2d89c406bc0f40243b
+  Licensed under Creative Commons Attribution 4.0 International (CC-BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+  Modified: re-materialized (unlit shader, per-submesh color copy), baked into an AssetBundle.

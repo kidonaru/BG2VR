@@ -1,0 +1,108 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    BG2VR — Bunny Garden 2 VR companion plugin。
+    VR コアは UnityVRMod-fork（別プラグイン）に委譲し、本プラグインは BG2 固有の
+    遷移ガード（②TransitionGuard）/ カメラ供給（①CameraBridge）を Harmony で「包む」。
+
+    前提:
+      - BepInEx 6.0.0-be (Mono) 環境（FixMod / UnityVRMod と同居）。
+      - UnityVRMod-fork を先にビルドしておくこと（既定は下記 dll を参照）:
+        ../UnityVRMod/Release/OpenXR/$(VrModConfig)/UnityVRMod.BepInEx.Mono_OpenXR.dll
+        （$(VrModConfig) 既定 = UnityVRMod.BepInEx.Mono.Debug）。
+      - ゲーム本体 DLL は FixMod の Assembly/ フォルダを共有参照する。
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>com.BG2VR</AssemblyName>
+    <Product>BG2VR</Product>
+    <Version>0.1.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>BG2VR</RootNamespace>
+    <!-- テストプロジェクト（BG2VR.Tests/）を既定 glob で巻き込まないよう src/ のみコンパイルする -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- net46 の fork dll を参照する際の mscorlib バージョン警告を抑制（Mono 実機では同一） -->
+    <NoWarn>$(NoWarn);CS1701;BepInEx002</NoWarn>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+    <!-- UnityVRMod-fork のビルド構成（OpenXR / Mono / Debug が既定） -->
+    <VrModConfig Condition="'$(VrModConfig)' == ''">UnityVRMod.BepInEx.Mono.Debug</VrModConfig>
+    <!-- VR コア backend（OpenXR 既定。OpenVR は 2026-06-10 に削除）。assembly 名・パスが backend で変わるため変数化。 -->
+    <VrModBackend Condition="'$(VrModBackend)' == ''">OpenXR</VrModBackend>
+    <VrModAsmName Condition="'$(VrModAsmName)' == ''">UnityVRMod.BepInEx.Mono_$(VrModBackend)</VrModAsmName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+    <!-- ConfigGen 生成物（src/ 外なので明示）。GenerateConfigs Target が CoreCompile 前に生成する。 -->
+    <Compile Include="Generated\Configs.g.cs" />
+  </ItemGroup>
+
+  <!-- コントローラ render model 用 unlit-opaque-textured shader の AssetBundle（BG2VR.Unity でビルド）。
+       ゲームに同等 shader が無いため同梱。マニフェスト名 = BG2VR.Resources.bg2vr_shaders -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\bg2vr_shaders" />
+  </ItemGroup>
+
+  <!-- コントローラ render model の Mesh+Texture を同梱（BG2VR.Unity で bake）。
+       マニフェスト名 = BG2VR.Resources.bg2vr_models。bake 前は不在 → Condition で skip（build を壊さない）。 -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\bg2vr_models" Condition="Exists('Resources\bg2vr_models')" />
+  </ItemGroup>
+
+  <!-- ─── Config 自動生成（FixMod と同方式）。Configs.yaml → Generated/Configs.g.cs + docs/configs.md ─── -->
+  <ItemGroup>
+    <ConfigGenInputs Include="tools\ConfigGen\*.cs" />
+    <ConfigGenInputs Include="tools\ConfigGen\ConfigGen.csproj" />
+    <ConfigGenInputs Include="Configs.yaml" />
+  </ItemGroup>
+  <Target Name="GenerateConfigs" BeforeTargets="BeforeBuild;CoreCompile" Inputs="@(ConfigGenInputs)" Outputs="Generated\Configs.g.cs;docs\configs.md">
+    <Message Text="[GenerateConfigs] Running ConfigGen..." Importance="high" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\tools\ConfigGen\ConfigGen.csproj&quot; -- --yaml &quot;$(MSBuildProjectDirectory)\Configs.yaml&quot; --out &quot;$(MSBuildProjectDirectory)\Generated\Configs.g.cs&quot; --out-md &quot;$(MSBuildProjectDirectory)\docs\configs.md&quot; --namespace BG2VR --hotkey F10" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Error Condition="!Exists('Generated\Configs.g.cs')" Text="[GenerateConfigs] FAILED: Generated\Configs.g.cs was not produced." />
+    <Error Condition="!Exists('docs\configs.md')" Text="[GenerateConfigs] FAILED: docs\configs.md was not produced." />
+  </Target>
+
+  <!-- BepInEx 6 (Mono) -->
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Unity.Mono" Version="6.0.0-*" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
+    <PackageReference Include="UnityEngine.Modules" Version="6000.0.31" IncludeAssets="compile" />
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.*" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- VR コア（UnityVRMod-fork）。BepInEx が別途ロードするので Private=false。 -->
+  <ItemGroup>
+    <Reference Include="$(VrModAsmName)">
+      <HintPath>..\UnityVRMod\Release\$(VrModBackend)\$(VrModConfig)\$(VrModAsmName).dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- ゲーム本体 DLL（FixMod の Assembly/ を共有参照。再配布不可なので Private=false） -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp" Publicize="true">
+      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UniTask">
+      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\UniTask.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- F10 入力検出用。UnityEngine.Modules に含まれないため個別参照（実機にロード済なので Private=false） -->
+    <Reference Include="Unity.InputSystem">
+      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\Unity.InputSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- WorldUiProjector の GraphicRaycaster 検出用（uGUI = UnityEngine.UI.dll。UnityEngine.Modules には含まれない） -->
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
