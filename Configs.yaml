@@ -129,18 +129,25 @@
       description: VR 中、ゲーム UI(HUD/会話/選択肢/ダイアログ/BackLog)を world-space パネルに投影する。
       ui: { kind: toggle }
 
+    - name: WorldUiLockOnTap
+      label: タップで位置を固定
+      type: bool
+      default: false
+      description: ON でポインタ手トリガーのタップ（または上ボタン）でパネル位置を固定する。OFF(既定)はタップしてもヘッド位置追従を継続する。
+      ui: { kind: toggle }
+
     - name: WorldUiDistance
       label: パネル距離(m)
       type: float
-      default: 0.5
-      range: [0.5, 8.0]
+      default: 0.49
+      range: [0.3, 8.0]
       description: world UI パネルまでの水平距離(m)。移動ドラッグで自動更新される。
       ui: { kind: slider, step: 0.1, format: '{0:F1}m' }
 
     - name: WorldUiSize
       label: パネル幅(m)
       type: float
-      default: 0.9
+      default: 0.92
       range: [0.4, 3.0]
       description: world UI パネルの物理幅(m)。高さは 16:9 で自動算出。
       ui: { kind: slider, step: 0.1, format: '{0:F1}m' }
@@ -148,7 +155,7 @@
     - name: WorldUiVerticalOffset
       label: パネル上下位置(m)
       type: float
-      default: 0.01
+      default: -0.013
       range: [-2.0, 2.0]
       description: world UI パネルの上下位置(m)。- で下、+ で上。移動ドラッグで自動更新される。
       ui: { kind: slider, step: 0.05, format: '{0:F2}m' }
@@ -156,7 +163,7 @@
     - name: WorldUiYaw
       label: パネル左右角度
       type: float
-      default: 2
+      default: -0.36
       range: [-180, 180]
       description: パネルの正面からの左右回り込み角度(度)。+で右。移動ドラッグで自動更新される。
       ui: { kind: slider, step: 1, format: '{0:0}°' }
@@ -195,7 +202,7 @@
     - name: WorldUiCurved
       label: パネル曲面化
       type: bool
-      default: false
+      default: true
       description: world UI パネルを視点を包む円筒曲面にする。パネル下の曲面ボタンと同期。
       ui: { kind: toggle }
 
@@ -287,6 +294,13 @@
       type: bool
       default: true
       description: VR コントローラのレーザーで world UI パネルを直接ポイント＆クリックする。
+      ui: { kind: toggle }
+
+    - name: SuppressMouseInVr
+      label: VR中マウス無効
+      type: bool
+      default: true
+      description: VR表示中は物理マウスの入力（UIホバー/クリック・カメラ操作）を無効化する。VR操作はコントローラで行うため通常はON。
       ui: { kind: toggle }
 
     - name: VrLaserVisible
@@ -558,6 +572,113 @@
       default: 0.85
       range: [0.1, 3.0]
       description: 手3Dモデルの拡大率。コード側base補正(1.0)後の微調整(effective=本値×1.0)。
+      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
+
+    - name: HandModelBrightness
+      label: 手モデル明るさ
+      group: 手モデル
+      type: float
+      default: 1.0
+      range: [0.0, 1.5]
+      description: 手3Dモデル専用の明るさ倍率(1.0=元の肌色)。コントローラ等の他種別は CtrlModelBrightness を使う(別系統)。実機チューニング 2026-06-19 で手は 1.0 がちょうど良いことを確認。
+      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
+
+    - name: HandShadeFactor
+      label: 手モデルの影の濃さ
+      group: 手モデル
+      type: float
+      default: 1.0
+      range: [0.0, 1.0]
+      description: 手3Dモデルの影色の濃さ。素体(Cast)の影色×この値が影色になる。1.0=素体のまま、小さいほど影が濃い。
+      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
+
+    - name: HandShadeFeather
+      label: 手モデルの影境界フェード
+      group: 手モデル
+      type: float
+      default: 0.08
+      range: [0.0, 0.5]
+      description: 手3Dモデルの影と光の境界のなめらかさ。0=くっきり(従来どおり)、大きいほど境界がフェードする。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: HandOutlineEnabled
+      label: 手モデルのアウトライン
+      group: 手モデル
+      type: bool
+      default: true
+      description: 手3Dモデルにアニメ調のアウトライン(輪郭線)を描く。OFFで従来どおり輪郭なし。
+      ui: { kind: toggle }
+
+    - name: HandOutlineColorR
+      label: 手アウトライン色R
+      group: 手モデル
+      type: float
+      default: 0.81
+      range: [0.0, 1.0]
+      description: 手モデルのアウトライン色(R成分)。F10でlive反映。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: HandOutlineColorG
+      label: 手アウトライン色G
+      group: 手モデル
+      type: float
+      default: 0.45
+      range: [0.0, 1.0]
+      description: 手モデルのアウトライン色(G成分)。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: HandOutlineColorB
+      label: 手アウトライン色B
+      group: 手モデル
+      type: float
+      default: 0.4
+      range: [0.0, 1.0]
+      description: 手モデルのアウトライン色(B成分)。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: HandOutlineWidth
+      label: 手アウトライン太さ(m)
+      group: 手モデル
+      type: float
+      default: 0.0008
+      range: [0.0, 0.02]
+      description: 手モデルのアウトラインの太さ(メートル・world space)。0で消える。実機live調整用(0.2mm刻み)。
+      ui: { kind: slider, step: 0.0002, format: '{0:F4}m' }
+
+    - name: HandSkinColorR
+      label: 手モデル肌色R
+      group: 手モデル
+      type: float
+      default: 1.0
+      range: [0.0, 1.5]
+      description: 手3Dモデルの肌色(R成分)。F10 でlive反映。shade色も連動して暗くなる(0.7倍/0.4倍の中間影/濃影)。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: HandSkinColorG
+      label: 手モデル肌色G
+      group: 手モデル
+      type: float
+      default: 0.7
+      range: [0.0, 1.5]
+      description: 手3Dモデルの肌色(G成分)。F10 でlive反映。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: HandSkinColorB
+      label: 手モデル肌色B
+      group: 手モデル
+      type: float
+      default: 0.62
+      range: [0.0, 1.5]
+      description: 手3Dモデルの肌色(B成分)。F10 でlive反映。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: HandMatCapIntensity
+      label: 手モデルMatCap強度
+      group: 手モデル
+      type: float
+      default: 0
+      range: [0.0, 2.0]
+      description: 手3DモデルのMatCap(球面ハイライト)強度。0で消える/2で最大強調。Cast由来matcap_skin texを使う。F10でlive反映。
       ui: { kind: slider, step: 0.05, format: '{0:F2}' }
 
     - name: BendFingers
@@ -1086,6 +1207,95 @@
       description: 右手サイリウムの拡大率。コード側base補正後の微調整(1.0で実寸目安)。
       ui: { kind: slider, step: 0.05, format: '{0:F2}' }
 
+    - name: KaraokeGlowEmission
+      label: サイリウム発光強度
+      group: カラオケ楽器
+      type: float
+      default: 1
+      range: [0.0, 6.0]
+      description: 右手サイリウム発光部(チューブ)のHDR発光強度。素色×この値を毎フレ書き、内部HDRバッファ経由でBloomに拾われ発光する。0で発光オフ。
+      ui: { kind: slider, step: 0.1, format: '{0:F1}' }
+
+    - name: KaraokeGlowSaturationThreshold
+      label: サイリウム発光彩度しきい値
+      group: カラオケ楽器
+      type: float
+      default: 0.35
+      range: [0.0, 1.0]
+      description: サイリウムで発光させる「ピンク部分」を選ぶ彩度しきい値。彩度がこの値以上のsubmeshだけ発光する。下げるとCore(薄ピンク)も発光する。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: KaraokePropBrightness
+      label: カラオケ楽器の明るさ
+      group: カラオケ楽器
+      type: float
+      default: 1
+      range: [0.1, 3.0]
+      description: タンバリン/サイリウムのアニメ調描画の明るさ。手と共有のglobal light(0.63)による暗化を補正する。コントローラ/カメラとは独立。
+      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
+
+    - name: KaraokePropShadeFactor
+      label: カラオケ楽器の影の濃さ
+      group: カラオケ楽器
+      type: float
+      default: 1
+      range: [0.0, 1.0]
+      description: タンバリン/サイリウムのアニメ調の影色。素色×この値が影色になる。小さいほど影が濃い(1.0で影なし)。
+      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
+
+    - name: KaraokePropShadeFeather
+      label: カラオケ楽器の影境界フェード
+      group: カラオケ楽器
+      type: float
+      default: 0.1
+      range: [0.0, 0.5]
+      description: タンバリン/サイリウムの影と光の境界のなめらかさ。0=くっきり2-tone、大きいほど境界がフェードする。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: KaraokePropOutlineEnabled
+      label: カラオケ楽器のアウトライン
+      group: カラオケ楽器
+      type: bool
+      default: true
+      description: タンバリン/サイリウムにアニメ調のアウトライン(輪郭線)を描く。OFFで従来どおり輪郭なし。
+      ui: { kind: toggle }
+
+    - name: KaraokePropOutlineColorR
+      label: 楽器アウトライン色R
+      group: カラオケ楽器
+      type: float
+      default: 0.05
+      range: [0.0, 1.0]
+      description: タンバリン/サイリウムのアウトライン色(R成分)。F10でlive反映。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: KaraokePropOutlineColorG
+      label: 楽器アウトライン色G
+      group: カラオケ楽器
+      type: float
+      default: 0.05
+      range: [0.0, 1.0]
+      description: タンバリン/サイリウムのアウトライン色(G成分)。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: KaraokePropOutlineColorB
+      label: 楽器アウトライン色B
+      group: カラオケ楽器
+      type: float
+      default: 0.05
+      range: [0.0, 1.0]
+      description: タンバリン/サイリウムのアウトライン色(B成分)。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}' }
+
+    - name: KaraokePropOutlineWidth
+      label: 楽器アウトライン太さ(m)
+      group: カラオケ楽器
+      type: float
+      default: 0.0006
+      range: [0.0, 0.02]
+      description: タンバリン/サイリウムのアウトラインの太さ(メートル・world space)。0で消える。実機live調整用(0.2mm刻み)。
+      ui: { kind: slider, step: 0.0002, format: '{0:F4}m' }
+
     - name: HandSumoPushEnabled
       label: 手押し相撲 押し出し入力
       group: 手押し相撲
@@ -1403,6 +1613,13 @@
       description: 遷移絵柄 overlay の HMD からの距離(メートル)。
       ui: { kind: slider, step: 0.1, format: '{0:F1}m' }
 
+    - name: VrTransitionOverlayWorldLock
+      label: トランジション絵柄を空間固定
+      type: bool
+      default: true
+      description: 遷移絵柄を頭ロックでなく空間に固定して表示する(頭を回しても絵柄が動かない・UIパネル同様)。OFF で従来の頭追従。
+      ui: { kind: toggle }
+
 - section: Locomotion
   name: VR 移動
   configs:
@@ -1697,3 +1914,45 @@
       range: [5, 45]
       description: 追従解除の境界 = 追従範囲(上下) + これ。ヒステリシス幅。小さいほど境界付近でパタつきやすい。
       ui: { kind: slider, step: 5, format: '{0:0}°' }
+
+- section: SpatialVoice
+  name: Spatial Voice
+  configs:
+    - name: VrSpatialVoice
+      label: 空間化ボイス
+      type: bool
+      default: true
+      description: VR 中、キャストのボイスを真の HRTF（バイノーラル）で空間化する。頭を向けると定位が動き、上下・前後・頭外定位（externalization）まで出る。本体 voice をミュートして専用ソースへミラーするため、非 VR / OFF / native 失敗時は素の 2D（回帰なし）。
+      ui: { kind: toggle }
+
+    - name: VoiceHrtfSpatialBlend
+      label: 空間化ブレンド
+      type: float
+      default: 1.0
+      range: [0.0, 1.0]
+      description: HRTF の空間化度合い（Steam Audio の spatialBlend 直結）。1=完全空間化 / 0=非空間化寄り（明瞭度重視）。聞き取りづらければ下げる。
+      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
+
+    - name: VoiceMinDistance
+      label: 減衰開始距離(m)
+      type: float
+      default: 0.5
+      range: [0.0, 5.0]
+      description: この距離（HMD からキャストの口元まで）以内は距離減衰なし。rig の World Scale で実効距離が変わるため実機で詰める。
+      ui: { kind: slider, step: 0.1, format: '{0:F2}m' }
+
+    - name: VoiceMaxDistance
+      label: 減衰しきる距離(m)
+      type: float
+      default: 8.0
+      range: [1.0, 30.0]
+      description: この距離以遠でボイスが減衰しきる（無音）。減衰開始距離との間は線形。キャストが遠いシーンで無音にならないよう実機で詰める。
+      ui: { kind: slider, step: 0.5, format: '{0:F1}m' }
+
+    - name: VoiceMouthForwardOffset
+      label: 口元前方オフセット(m)
+      type: float
+      default: 0.1
+      range: [-0.3, 0.5]
+      description: 頭ボーン位置から口元への前方オフセット。音源位置を顔の前方へずらして定位を自然にする。
+      ui: { kind: slider, step: 0.01, format: '{0:F2}m' }

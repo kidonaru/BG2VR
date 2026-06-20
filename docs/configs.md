@@ -38,15 +38,16 @@
 | キー | デフォルト | 説明 |
 |------|-----------|------|
 | `WorldUiEnabled` | `true` | world UI 投影<br>VR 中、ゲーム UI(HUD/会話/選択肢/ダイアログ/BackLog)を world-space パネルに投影する。 |
-| `WorldUiDistance` | `0.5` | パネル距離(m)<br>world UI パネルまでの水平距離(m)。移動ドラッグで自動更新される。 |
-| `WorldUiSize` | `0.9` | パネル幅(m)<br>world UI パネルの物理幅(m)。高さは 16:9 で自動算出。 |
-| `WorldUiVerticalOffset` | `0.01` | パネル上下位置(m)<br>world UI パネルの上下位置(m)。- で下、+ で上。移動ドラッグで自動更新される。 |
-| `WorldUiYaw` | `2` | パネル左右角度<br>パネルの正面からの左右回り込み角度(度)。+で右。移動ドラッグで自動更新される。 |
+| `WorldUiLockOnTap` | `false` | タップで位置を固定<br>ON でポインタ手トリガーのタップ（または上ボタン）でパネル位置を固定する。OFF(既定)はタップしてもヘッド位置追従を継続する。 |
+| `WorldUiDistance` | `0.49` | パネル距離(m)<br>world UI パネルまでの水平距離(m)。移動ドラッグで自動更新される。 |
+| `WorldUiSize` | `0.92` | パネル幅(m)<br>world UI パネルの物理幅(m)。高さは 16:9 で自動算出。 |
+| `WorldUiVerticalOffset` | `-0.013` | パネル上下位置(m)<br>world UI パネルの上下位置(m)。- で下、+ で上。移動ドラッグで自動更新される。 |
+| `WorldUiYaw` | `-0.36` | パネル左右角度<br>パネルの正面からの左右回り込み角度(度)。+で右。移動ドラッグで自動更新される。 |
 | `WorldUiUprightAngleDeg` | `20` | パネル直立維持角度<br>視点からの仰角がこの角度(度)以内ならパネルを直立に保つ。超えた分だけ視点を向くように傾く。 |
 | `WorldUiButtonSizeRatio` | `0.02` | 調整ボタンサイズ比率<br>パネル下の調整ボタン（移動/拡大/曲面）の辺の長さ＝視点距離×この比率 + 加算値（視角一定）。 |
 | `WorldUiButtonSizeOffset` | `0.04` | 調整ボタンサイズ加算(m)<br>調整ボタンの辺の長さへの加算値(m)。辺 = 視点距離×比率 + この値（0 未満にはならない）。 |
 | `EnableUiAdjustButtons` | `true` | パネル調整ボタン<br>レーザーをパネルに当てると下に移動/拡大/曲面ボタンを表示する。移動/拡大=ボタン上でトリガーを押したままドラッグ（移動中はスティック上下で押し引き）、曲面=クリックで切替。 |
-| `WorldUiCurved` | `false` | パネル曲面化<br>world UI パネルを視点を包む円筒曲面にする。パネル下の曲面ボタンと同期。 |
+| `WorldUiCurved` | `true` | パネル曲面化<br>world UI パネルを視点を包む円筒曲面にする。パネル下の曲面ボタンと同期。 |
 | `WorldUiCurveRadius` | `2` | 曲面半径(m)<br>曲面パネルの円筒半径(m)。小さいほど強く湾曲する。 |
 | `WorldUiDepthTest` | `true` | UI の depth test<br>ON（既定）で UI パネル/ボタン/レーザーが世界の物体（机・キャラ等）に隠れるようになる。OFF は常に最前面に描画。 |
 | `VrControllerOccludeUi` | `true` | コントローラが UI を遮る<br>ON でコントローラ/手元モデルだけが UI パネルを遮る（手前にあると UI が隠れる）。シーン（机・キャラ等）は UI を遮らない。レーザー/レティクルは常に最前面。ゲームのポスプロ反映 + UI くっきり が ON のときのみ有効。 |
@@ -68,6 +69,7 @@
 | キー | デフォルト | 説明 |
 |------|-----------|------|
 | `EnableVrPointer` | `true` | VR ポインタ入力<br>VR コントローラのレーザーで world UI パネルを直接ポイント＆クリックする。 |
+| `SuppressMouseInVr` | `true` | VR中マウス無効<br>VR表示中は物理マウスの入力（UIホバー/クリック・カメラ操作）を無効化する。VR操作はコントローラで行うため通常はON。 |
 | `VrLaserVisible` | `true` | レーザー表示<br>コントローラからのレーザー線とレティクルを表示する。 |
 | `EnableVrButtons` | `true` | VR ボタン割当<br>VR コントローラのボタンをゲームパッド同等に割り当てる（A=決定 / B=戻る・長押しで再センター / X=バックログ / Y=既読スキップ / 右スティック=選択肢移動 / 左スティック=カメラ・アイテム回転 / 押し込み=オート切替）。OFF時は上ボタン=即時再センターのみ。 |
 | `EnableVrPauseButton` | `true` | メニューボタンでポーズ<br>左コントローラのメニューボタンでポーズメニュー（ESC/Start 相当）を開閉する。VR ボタン割当とは独立して有効化できる。 |
@@ -99,6 +101,18 @@
 | `HandModelRotOffsetY` | `-13` | 手回転補正Y(度)<br>手3Dモデルの回転補正Y(yaw)。 |
 | `HandModelRotOffsetZ` | `-8` | 手回転補正Z(度)<br>手3Dモデルの回転補正Z(roll)。 |
 | `HandModelScale` | `0.85` | 手拡大率<br>手3Dモデルの拡大率。コード側base補正(1.0)後の微調整(effective=本値×1.0)。 |
+| `HandModelBrightness` | `1.0` | 手モデル明るさ<br>手3Dモデル専用の明るさ倍率(1.0=元の肌色)。コントローラ等の他種別は CtrlModelBrightness を使う(別系統)。実機チューニング 2026-06-19 で手は 1.0 がちょうど良いことを確認。 |
+| `HandShadeFactor` | `1.0` | 手モデルの影の濃さ<br>手3Dモデルの影色の濃さ。素体(Cast)の影色×この値が影色になる。1.0=素体のまま、小さいほど影が濃い。 |
+| `HandShadeFeather` | `0.08` | 手モデルの影境界フェード<br>手3Dモデルの影と光の境界のなめらかさ。0=くっきり(従来どおり)、大きいほど境界がフェードする。 |
+| `HandOutlineEnabled` | `true` | 手モデルのアウトライン<br>手3Dモデルにアニメ調のアウトライン(輪郭線)を描く。OFFで従来どおり輪郭なし。 |
+| `HandOutlineColorR` | `0.81` | 手アウトライン色R<br>手モデルのアウトライン色(R成分)。F10でlive反映。 |
+| `HandOutlineColorG` | `0.45` | 手アウトライン色G<br>手モデルのアウトライン色(G成分)。 |
+| `HandOutlineColorB` | `0.4` | 手アウトライン色B<br>手モデルのアウトライン色(B成分)。 |
+| `HandOutlineWidth` | `0.0008` | 手アウトライン太さ(m)<br>手モデルのアウトラインの太さ(メートル・world space)。0で消える。実機live調整用(0.2mm刻み)。 |
+| `HandSkinColorR` | `1.0` | 手モデル肌色R<br>手3Dモデルの肌色(R成分)。F10 でlive反映。shade色も連動して暗くなる(0.7倍/0.4倍の中間影/濃影)。 |
+| `HandSkinColorG` | `0.7` | 手モデル肌色G<br>手3Dモデルの肌色(G成分)。F10 でlive反映。 |
+| `HandSkinColorB` | `0.62` | 手モデル肌色B<br>手3Dモデルの肌色(B成分)。F10 でlive反映。 |
+| `HandMatCapIntensity` | `0` | 手モデルMatCap強度<br>手3DモデルのMatCap(球面ハイライト)強度。0で消える/2で最大強調。Cast由来matcap_skin texを使う。F10でlive反映。 |
 | `BendFingers` | `true` | 指を曲げる<br>ハンドモデルの指をトリガー(人差し指)/グリップ(他4本)の押し込み量で曲げる。要skin済み手バンドル(再bake)。 |
 | `FingerCurlMaxDeg` | `68` | 指の最大曲げ角(度)<br>人差し指(トリガー)と中・薬・小指(グリップ)の関節1つあたり最大曲げ角。実機で詰める。 |
 | `ThumbCurlMaxDeg` | `12` | 親指の最大曲げ角(度)<br>親指(グリップ)の関節1つあたり最大曲げ角。親指は張り出すため他指と分離。 |
@@ -158,6 +172,16 @@
 | `KaraokeGlowRotOffsetY` | `173` | サイリウム回転補正Y(度)<br>右手サイリウムの回転補正Y(yaw)。 |
 | `KaraokeGlowRotOffsetZ` | `0` | サイリウム回転補正Z(度)<br>右手サイリウムの回転補正Z(roll)。 |
 | `KaraokeGlowScale` | `1.3` | サイリウム拡大率<br>右手サイリウムの拡大率。コード側base補正後の微調整(1.0で実寸目安)。 |
+| `KaraokeGlowEmission` | `1` | サイリウム発光強度<br>右手サイリウム発光部(チューブ)のHDR発光強度。素色×この値を毎フレ書き、内部HDRバッファ経由でBloomに拾われ発光する。0で発光オフ。 |
+| `KaraokeGlowSaturationThreshold` | `0.35` | サイリウム発光彩度しきい値<br>サイリウムで発光させる「ピンク部分」を選ぶ彩度しきい値。彩度がこの値以上のsubmeshだけ発光する。下げるとCore(薄ピンク)も発光する。 |
+| `KaraokePropBrightness` | `1` | カラオケ楽器の明るさ<br>タンバリン/サイリウムのアニメ調描画の明るさ。手と共有のglobal light(0.63)による暗化を補正する。コントローラ/カメラとは独立。 |
+| `KaraokePropShadeFactor` | `1` | カラオケ楽器の影の濃さ<br>タンバリン/サイリウムのアニメ調の影色。素色×この値が影色になる。小さいほど影が濃い(1.0で影なし)。 |
+| `KaraokePropShadeFeather` | `0.1` | カラオケ楽器の影境界フェード<br>タンバリン/サイリウムの影と光の境界のなめらかさ。0=くっきり2-tone、大きいほど境界がフェードする。 |
+| `KaraokePropOutlineEnabled` | `true` | カラオケ楽器のアウトライン<br>タンバリン/サイリウムにアニメ調のアウトライン(輪郭線)を描く。OFFで従来どおり輪郭なし。 |
+| `KaraokePropOutlineColorR` | `0.05` | 楽器アウトライン色R<br>タンバリン/サイリウムのアウトライン色(R成分)。F10でlive反映。 |
+| `KaraokePropOutlineColorG` | `0.05` | 楽器アウトライン色G<br>タンバリン/サイリウムのアウトライン色(G成分)。 |
+| `KaraokePropOutlineColorB` | `0.05` | 楽器アウトライン色B<br>タンバリン/サイリウムのアウトライン色(B成分)。 |
+| `KaraokePropOutlineWidth` | `0.0006` | 楽器アウトライン太さ(m)<br>タンバリン/サイリウムのアウトラインの太さ(メートル・world space)。0で消える。実機live調整用(0.2mm刻み)。 |
 | `HandSumoPushEnabled` | `true` | 手押し相撲 押し出し入力<br>手押し相撲中、両手を前に出す動作でクリック判定を発火する。両手同時のみ（片手では発火しない）。A ボタンでも従来どおりクリック可。 |
 | `ShowHandSumoHands` | `true` | 手押し相撲 両手ハンド固定<br>手押し相撲中、両手モデルをハンドに固定する（見た目のみ。両手非コントローラ＝レーザーは終始 suppress）。要 ShowControllerModel=ON。終了で自動復帰。 |
 | `HandSumoPushThreshold` | `0.7` | 押し出し検知しきい値(m/s)<br>前進(前方向)線速度の発火しきい値。低いほど軽い押しで反応。実機で調整。 |
@@ -199,6 +223,7 @@
 | `EnableVrTransitionOverlay` | `true` | VR トランジション絵柄<br>シーン遷移の絵柄トランジションを VR(HMD)側にも overlay 表示する。OFF 時は白フェードのみ。 |
 | `VrTransitionOverlayWidth` | `4.5` | トランジション絵柄の幅(m)<br>遷移絵柄 overlay の横幅(メートル)。大きいほど視界を覆う。 |
 | `VrTransitionOverlayDistance` | `1.5` | トランジション絵柄の距離(m)<br>遷移絵柄 overlay の HMD からの距離(メートル)。 |
+| `VrTransitionOverlayWorldLock` | `true` | トランジション絵柄を空間固定<br>遷移絵柄を頭ロックでなく空間に固定して表示する(頭を回しても絵柄が動かない・UIパネル同様)。OFF で従来の頭追従。 |
 
 ## [Locomotion] VR 移動
 
@@ -255,4 +280,14 @@
 | `EngagePitchDeg` | `45` | 追従範囲(上下)(度)<br>HMD が顔の正面からこの角度（上下）以内に入ると追従を開始する。解除は「解除マージン(上下)」だけ外側（パタつき防止のヒステリシス）。 |
 | `ReleaseYawMarginDeg` | `20` | 解除マージン(左右)(度)<br>追従解除の境界 = 追従範囲(左右) + これ。ヒステリシス幅。小さいほど境界付近でパタつきやすい。 |
 | `ReleasePitchMarginDeg` | `20` | 解除マージン(上下)(度)<br>追従解除の境界 = 追従範囲(上下) + これ。ヒステリシス幅。小さいほど境界付近でパタつきやすい。 |
+
+## [SpatialVoice] Spatial Voice
+
+| キー | デフォルト | 説明 |
+|------|-----------|------|
+| `VrSpatialVoice` | `true` | 空間化ボイス<br>VR 中、キャストのボイスを真の HRTF（バイノーラル）で空間化する。頭を向けると定位が動き、上下・前後・頭外定位（externalization）まで出る。本体 voice をミュートして専用ソースへミラーするため、非 VR / OFF / native 失敗時は素の 2D（回帰なし）。 |
+| `VoiceHrtfSpatialBlend` | `1.0` | 空間化ブレンド<br>HRTF の空間化度合い（Steam Audio の spatialBlend 直結）。1=完全空間化 / 0=非空間化寄り（明瞭度重視）。聞き取りづらければ下げる。 |
+| `VoiceMinDistance` | `0.5` | 減衰開始距離(m)<br>この距離（HMD からキャストの口元まで）以内は距離減衰なし。rig の World Scale で実効距離が変わるため実機で詰める。 |
+| `VoiceMaxDistance` | `8.0` | 減衰しきる距離(m)<br>この距離以遠でボイスが減衰しきる（無音）。減衰開始距離との間は線形。キャストが遠いシーンで無音にならないよう実機で詰める。 |
+| `VoiceMouthForwardOffset` | `0.1` | 口元前方オフセット(m)<br>頭ボーン位置から口元への前方オフセット。音源位置を顔の前方へずらして定位を自然にする。 |
 

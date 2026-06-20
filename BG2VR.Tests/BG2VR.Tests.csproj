@@ -1,0 +1,107 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    BG2VR の純関数（UnityEngine / BepInEx に非依存なロジック）を xUnit でテストする。
+    TransitionGuardState / CameraSelector は System のみ依存なので Unity 参照は不要。
+    本体 dll は参照せず Compile link でソース直リンクする（FixMod.Tests と同方針）。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- Windows の dotnet.exe でビルドするため Windows パス (C:/...) で指定する。WSL パス (/mnt/c/...) は解決不可。 -->
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">C:/Program Files (x86)/Steam/steamapps/common/BUNNY GARDEN 2/BUNNY GARDEN 2_Data/Managed</UnityManagedDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!-- dll 不在時は CS0246 等の遠回りなエラーになるため、明示メッセージで原因を即特定できるようにする。 -->
+  <Target Name="CheckUnityManagedDir" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(UnityManagedDir)/UnityEngine.CoreModule.dll')"
+           Text="UnityEngine.CoreModule.dll が見つかりません: $(UnityManagedDir)。ゲームの Managed フォルダのパスを -p:UnityManagedDir=&quot;C:/.../*_Data/Managed&quot; で指定してください。" />
+  </Target>
+
+  <!-- PlacementSolver / CanvasRootClassifier は UnityEngine(Vector3/Quaternion/RenderMode) 依存。実機 CoreModule を参照（compile+実行時解決）。 -->
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../src/VrInput/HandSkinShaderClassifier.cs" Link="Linked/HandSkinShaderClassifier.cs" />
+    <Compile Include="../src/VrInput/HandLayerResolver.cs" Link="Linked/HandLayerResolver.cs" />
+    <Compile Include="../src/WorldUi/PlacementSolver.cs" Link="Linked/PlacementSolver.cs" />
+    <Compile Include="../src/WorldUi/CanvasRootClassifier.cs" Link="Linked/CanvasRootClassifier.cs" />
+    <Compile Include="../src/TransitionGuard/TransitionGuardState.cs" Link="Linked/TransitionGuardState.cs" />
+    <Compile Include="../src/TransitionGuard/TransitionTeardownArming.cs" Link="Linked/TransitionTeardownArming.cs" />
+    <Compile Include="../src/CameraBridge/CameraSelector.cs" Link="Linked/CameraSelector.cs" />
+    <Compile Include="../src/DesktopLowRes/VrDesktopResolution.cs" Link="Linked/VrDesktopResolution.cs" />
+    <Compile Include="../src/DesktopLowRes/VrFullscreenPolicy.cs" Link="Linked/VrFullscreenPolicy.cs" />
+    <Compile Include="../src/VrInput/QuadRaycaster.cs" Link="Linked/QuadRaycaster.cs" />
+    <Compile Include="../src/VrInput/ReticlePainter.cs" Link="Linked/ReticlePainter.cs" />
+    <Compile Include="../src/VrInput/PointerButtonState.cs" Link="Linked/PointerButtonState.cs" />
+    <Compile Include="../src/VrInput/FingerCurlMath.cs" Link="Linked/FingerCurlMath.cs" />
+    <Compile Include="../src/HandSumoPush/HandSumoPushDetector.cs" Link="Linked/HandSumoPushDetector.cs" />
+    <Compile Include="../src/WorldUi/CanvasLayerPolicy.cs" Link="Linked/CanvasLayerPolicy.cs" />
+    <Compile Include="../src/VrInput/RaySmoother.cs" Link="Linked/RaySmoother.cs" />
+    <Compile Include="../src/VrInput/PointerFreezeGate.cs" Link="Linked/PointerFreezeGate.cs" />
+    <Compile Include="../src/VrFade/FadeMirrorPolicy.cs" Link="Linked/FadeMirrorPolicy.cs" />
+    <Compile Include="../src/VrInput/PointerHandArbiter.cs" Link="Linked/PointerHandArbiter.cs" />
+    <Compile Include="../src/VrInput/StickNavMapper.cs" Link="Linked/StickNavMapper.cs" />
+    <Compile Include="../src/KarutaStick/KarutaStickMap.cs" Link="Linked/KarutaStickMap.cs" />
+    <Compile Include="../src/VrInput/HoldButtonClassifier.cs" Link="Linked/HoldButtonClassifier.cs" />
+    <Compile Include="../src/Locomotion/GrabMoveState.cs" Link="Linked/GrabMoveState.cs" />
+    <Compile Include="../src/Locomotion/GrabMoveSolver.cs" Link="Linked/GrabMoveSolver.cs" />
+    <Compile Include="../src/Locomotion/GripPoseSmoother.cs" Link="Linked/GripPoseSmoother.cs" />
+    <Compile Include="../src/Talk2DBackdrop/BackdropSolver.cs" Link="Linked/BackdropSolver.cs" />
+    <Compile Include="../src/WorldUi/PanelGrabSolver.cs" Link="Linked/PanelGrabSolver.cs" />
+    <Compile Include="../src/WorldUi/PanelMeshBuilder.cs" Link="Linked/PanelMeshBuilder.cs" />
+    <Compile Include="../src/VrInput/CurvedPanelRaycaster.cs" Link="Linked/CurvedPanelRaycaster.cs" />
+    <Compile Include="../src/WorldUi/ScaleDragSolver.cs" Link="Linked/ScaleDragSolver.cs" />
+    <Compile Include="../src/WorldUi/PanelAdjustState.cs" Link="Linked/PanelAdjustState.cs" />
+    <Compile Include="../src/WorldUi/ButtonBarLayout.cs" Link="Linked/ButtonBarLayout.cs" />
+    <Compile Include="../src/WorldUi/IconPainter.cs" Link="Linked/IconPainter.cs" />
+    <Compile Include="../src/HeadLook/LookAtState.cs" Link="Linked/LookAtState.cs" />
+    <Compile Include="../src/HeadLook/HeadLookSolver.cs" Link="Linked/HeadLookSolver.cs" />
+    <Compile Include="../src/FramePacing/FramePacingPolicy.cs" Link="Linked/FramePacingPolicy.cs" />
+    <Compile Include="../src/MouseSuppress/MouseSuppressionPolicy.cs" Link="Linked/MouseSuppressionPolicy.cs" />
+    <Compile Include="../src/VrLayers.cs" Link="Linked/VrLayers.cs" />
+    <Compile Include="../src/UiSceneVoid/UiSceneVoidPolicy.cs" Link="Linked/UiSceneVoidPolicy.cs" />
+    <Compile Include="../src/EyeCulling/EyeCullingPolicy.cs" Link="Linked/EyeCullingPolicy.cs" />
+    <Compile Include="../src/WorldUi/UiOverlayRenderPolicy.cs" Link="Linked/UiOverlayRenderPolicy.cs" />
+    <Compile Include="../src/CameraFollow/CameraFollowState.cs" Link="Linked/CameraFollowState.cs" />
+    <Compile Include="../src/ScenePinned/PinnedPoseCodec.cs" Link="Linked/PinnedPoseCodec.cs" />
+    <Compile Include="../src/ScenePinned/EnvKeyResolver.cs" Link="Linked/EnvKeyResolver.cs" />
+    <Compile Include="../src/VrFade/OverlayUvMapper.cs" Link="Linked/OverlayUvMapper.cs" />
+    <Compile Include="../src/VrFade/TransitionOverlayPolicy.cs" Link="Linked/TransitionOverlayPolicy.cs" />
+    <Compile Include="../src/VrInput/ControllerModelPose.cs" Link="Linked/ControllerModelPose.cs" />
+    <Compile Include="../src/Patches/Settings/MsaaDropdownPolicy.cs" Link="Linked/MsaaDropdownPolicy.cs" />
+    <Compile Include="../src/EyeMsaa/EyeMsaaPolicy.cs" Link="Linked/EyeMsaaPolicy.cs" />
+    <Compile Include="../src/VrInput/HandModelKind.cs" Link="Linked/HandModelKind.cs" />
+    <Compile Include="../src/VrInput/HandModelContext.cs" Link="Linked/HandModelContext.cs" />
+    <Compile Include="../src/VrInput/HandModelSelector.cs" Link="Linked/HandModelSelector.cs" />
+    <Compile Include="../src/DrinkGlass/DrinkPropKind.cs" Link="Linked/DrinkPropKind.cs" />
+    <Compile Include="../src/DrinkGlass/DrinkPropSelector.cs" Link="Linked/DrinkPropSelector.cs" />
+    <Compile Include="../src/VrInput/ModelSwitchInput.cs" Link="Linked/ModelSwitchInput.cs" />
+    <Compile Include="../src/Locomotion/StickMoveSolver.cs" Link="Linked/StickMoveSolver.cs" />
+    <Compile Include="../src/VrInput/VrCameraMask.cs" Link="Linked/VrCameraMask.cs" />
+    <Compile Include="../src/VrInput/ChekiZoom.cs" Link="Linked/ChekiZoom.cs" />
+    <Compile Include="../src/VrInput/PropGlow.cs" Link="Linked/PropGlow.cs" />
+    <Compile Include="../src/KaraokeShake/KaraokeShakeDetector.cs" Link="Linked/KaraokeShakeDetector.cs" />
+    <Compile Include="../src/VrInput/NavRepeat.cs" Link="Linked/NavRepeat.cs" />
+    <Compile Include="../src/VrInput/SettingsPanelInput.cs" Link="Linked/SettingsPanelInput.cs" />
+    <Compile Include="../src/VrInput/SettingsLaserMath.cs" Link="Linked/SettingsLaserMath.cs" />
+    <Compile Include="../src/AhhnVr/AhhnEatJudge.cs" Link="Linked/AhhnEatJudge.cs" />
+    <Compile Include="../src/VrInput/SettingsScrollMath.cs" Link="Linked/SettingsScrollMath.cs" />
+    <Compile Include="../src/PostProcess/PostProcessPolicy.cs" Link="Linked/PostProcessPolicy.cs" />
+    <Compile Include="../src/SpatialVoice/SpatialVoiceLogic.cs" Link="Linked/SpatialVoiceLogic.cs" />
+  </ItemGroup>
+
+</Project>
