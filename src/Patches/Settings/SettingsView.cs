@@ -70,8 +70,13 @@ public class SettingsView : MonoBehaviour
     private Label m_tooltipLabel;
     private IVisualElementScheduledItem m_tooltipShowTimer;
     private string m_tooltipPendingText;
+    // tooltip の X 始点ヒント。マウス版は row ローカル座標(evt.mousePosition)、VR レーザー版は panel 空間(pp)で
+    // 座標系が異なるが、消費側 ShowTooltipAtCursor で水平始点として使い maxWidth/panelW で再 clamp するため
+    // 数 px のズレに留まる（Y は row 非 null 時 rowBounds から算出し本フィールドの Y は不使用）。
     private Vector2 m_tooltipPendingMousePos;
     private VisualElement m_tooltipPendingRow;
+    // VR レーザー hover 中の行 index（前フレーム値）。マウス版 MouseEnter/Leave の VR 等価を駆動する（#1）。
+    private int m_laserHoverRowIdx = -1;
 
     private struct RowHandle
     {
@@ -299,7 +304,7 @@ public class SettingsView : MonoBehaviour
         m_root.Add(m_captureHintLabel);
 
         BuildSidebar();
-        RenderContent();
+        RenderContent(resetScroll: true);
     }
 
     private void ShowTooltipAtCursor()
@@ -342,6 +347,33 @@ public class SettingsView : MonoBehaviour
     {
         if (m_tooltipLabel == null) return;
         m_tooltipLabel.style.display = DisplayStyle.None;
+    }
+
+    /// <summary>レーザー hover 行に応じて自前 tooltip を駆動する（#1・マウス版 MouseEnter/Leave の VR 等価）。
+    /// 毎フレーム呼ばれるため hover 行が「変わったとき」だけ再スケジュールする（さもないと 500ms タイマが
+    /// 毎フレ リセットされ発火しない）。panelPoint = レーザー命中の panel 座標（マウス版 mousePosition 相当）。</summary>
+    private void UpdateLaserHoverTooltip(int rowIdx, Vector2 panelPoint)
+    {
+        if (rowIdx == m_laserHoverRowIdx) return; // 同一行を hover 継続 → 何もしない（タイマ走行中）
+        m_laserHoverRowIdx = rowIdx;
+        m_tooltipShowTimer?.Pause();
+        HideTooltip();
+        if (rowIdx < 0 || rowIdx >= m_currentRows.Count) return;
+        var h = m_currentRows[rowIdx];
+        var desc = h.Entry.Desc;
+        if (string.IsNullOrEmpty(desc)) return;
+        m_tooltipPendingText = desc;
+        m_tooltipPendingMousePos = panelPoint;
+        m_tooltipPendingRow = h.Row;
+        m_tooltipShowTimer = m_tooltipLabel.schedule.Execute(ShowTooltipAtCursor).StartingIn(500);
+    }
+
+    /// <summary>レーザーが行/設定ウィンドウから外れた・モーダル終了・再描画時に hover 状態と tooltip を解く。</summary>
+    private void ResetLaserHoverTooltip()
+    {
+        m_laserHoverRowIdx = -1;
+        m_tooltipShowTimer?.Pause();
+        HideTooltip();
     }
 
     private void BuildSidebar()
@@ -405,13 +437,16 @@ public class SettingsView : MonoBehaviour
         m_selectedCategoryIndex = index;
         m_selectedRowIndex = 0;
         ApplySidebarHighlight();
-        RenderContent();
+        RenderContent(resetScroll: true);
     }
 
-    private void RenderContent()
+    private void RenderContent(bool resetScroll)
     {
         // RenderContent はキャプチャ確定からも呼ばれるが、CancelKeyCapture は冪等のため
         // ここでは呼ばない。別経路 (SelectCategory / ResetCurrentCategory / Hide) がキャンセル済み。
+
+        // #3: グループ開閉等の再描画でスクロール位置を保持するため Clear 前に退避（Clear 後は失われる）。
+        float savedScrollY = m_content != null ? m_content.scrollOffset.y : 0f;
 
         // 旧行が dropdown / PadDropdown を開いていた場合、Clear する前にポップアップ overlay を回収する
         // （ポップアップは row 階層ではなく panel.visualTree 直下に挿入されているため）。
@@ -427,10 +462,9 @@ public class SettingsView : MonoBehaviour
         // 行を作り直すので、レーザードラッグ中スライダーは破棄済み要素を指す前にクリアする
         // （スティックナビのカテゴリ切替等で再描画が走る経路も網羅・code-review 🟡）。
         m_laserDragSlider = null;
-        // カテゴリ切替・再描画ごとにスクロール位置を先頭へ戻す（前カテゴリの scrollOffset 残留を防ぐ）。
-        m_content.scrollOffset = Vector2.zero;
         // カテゴリ切替時に残留 tooltip を非表示にする
         HideTooltip();
+        m_laserHoverRowIdx = -1; // 行再構築で stale になる hover index をリセット（次フレ再 hover で再検出）
 
         if (m_categories == null || m_categories.Count == 0) return;
         var category = m_categories[m_selectedCategoryIndex];
@@ -495,6 +529,10 @@ public class SettingsView : MonoBehaviour
         m_resetBtn.style.alignSelf = Align.Center;
         m_resetBtn.tooltip = "このカテゴリの全項目を既定値に戻します"; // 念のため（実表示は自前 tooltip 経由）
         m_content.Add(m_resetBtn);
+
+        // #3: カテゴリ切替(resetScroll)は先頭へ、グループ開閉・値リセット・再描画は位置保持。
+        if (resetScroll) m_content.scrollOffset = Vector2.zero;
+        else RestoreScroll(savedScrollY);
     }
 
     private void ResetCurrentCategory()
@@ -525,7 +563,7 @@ public class SettingsView : MonoBehaviour
             }
         }
         // 新しい値を UI に反映するため再描画
-        RenderContent();
+        RenderContent(resetScroll: false);
     }
 
     private RowHandle BuildRow(UIEntryMeta entry)
@@ -717,7 +755,7 @@ public class SettingsView : MonoBehaviour
     private void ToggleGroup(string section, string group)
     {
         SettingsCollapseState.SetCollapsed(section, group, !SettingsCollapseState.IsCollapsed(section, group));
-        RenderContent();
+        RenderContent(resetScroll: false);
     }
 
     private void ApplyRowHighlight()
@@ -743,7 +781,7 @@ public class SettingsView : MonoBehaviour
         ApplySidebarHighlight();
         m_root.style.display = DisplayStyle.Flex;
         // 開く度に最新値を反映するため再描画（.cfg 直編集との同期）
-        RenderContent();
+        RenderContent(resetScroll: true);
     }
 
     public void Hide()
@@ -792,6 +830,7 @@ public class SettingsView : MonoBehaviour
         // ① スライダードラッグ中は最優先で消費（pick より前。quad 上で window 外へ出ても継続）。
         if (m_laserDragSlider != null)
         {
+            ResetLaserHoverTooltip(); // ドラッグ中は tooltip を出さない
             if (held && hit && m_laserDragSlider.TryGetTrackWorldBound(out var twb))
             {
                 float px = uv.x * full.width + full.x;
@@ -801,14 +840,14 @@ public class SettingsView : MonoBehaviour
             return true;                                         // ドラッグ中は consume（hover/クリックは処理しない）
         }
 
-        if (!hit) return false; // quad 外＝hover/クリックなし
+        if (!hit) { ResetLaserHoverTooltip(); return false; } // quad 外＝hover/クリックなし
 
         // ② uv → panel 座標 → Pick。
         var pp = BG2VR.VrInput.SettingsLaserMath.UvToPanelPoint(uv, full);
         var picked = panel.Pick(pp);
         // 設定ウィンドウ(m_root)の外（透明マージン＝panel.visualTree 等を pick / null）はゲームUIへ通すため非消費。
         // m_root 自身 or その子孫を指したときだけ consume（不透明な小窓＝右上 460px のみが設定領域）。
-        if (picked == null || !IsAncestor(m_root, picked)) return false;
+        if (picked == null || !IsAncestor(m_root, picked)) { ResetLaserHoverTooltip(); return false; }
 
         // ③ owning control を親チェーンで分類。
         int rowIdx = -1, sbIdx = -1, ghIdx = -1; bool isReset = false;
@@ -826,6 +865,8 @@ public class SettingsView : MonoBehaviour
 
         // ④ hover: 行に乗ったら選択＋ハイライト（スティックナビと選択状態を共有）。
         if (rowIdx >= 0) { m_selectedRowIndex = rowIdx; ApplyRowHighlight(); }
+        // #1: hover 行に応じて自前 tooltip を駆動（命中点 pp はマウス版 mousePosition 相当）。
+        UpdateLaserHoverTooltip(rowIdx, pp);
 
         if (!justPressed) return true; // ウィンドウ上＝consume（クリックはまだ）
 
@@ -857,6 +898,7 @@ public class SettingsView : MonoBehaviour
     internal void LaserEnd()
     {
         m_laserDragSlider = null;
+        ResetLaserHoverTooltip(); // hover 状態と tooltip も解く（モーダル終了 / ポインタ手切替）
     }
 
     /// <summary>
@@ -876,6 +918,24 @@ public class SettingsView : MonoBehaviour
         var off = m_content.scrollOffset;
         off.y = Mathf.Clamp(off.y + deltaPixels, 0f, maxY);
         m_content.scrollOffset = off;
+    }
+
+    /// <summary>再描画後にスクロール位置を復元する（グループ開閉・値リセット等・#3）。値を即適用しつつ、
+    /// レイアウト確定後に 1 回 clamp して content 縮小時のはみ出し（畳んで高さが減ったケース）を補正する。</summary>
+    private void RestoreScroll(float y)
+    {
+        if (m_content == null) return;
+        m_content.scrollOffset = new Vector2(0f, Mathf.Max(0f, y));
+        m_content.schedule.Execute(() =>
+        {
+            float viewportH = m_content.contentViewport.layout.height;
+            float contentH = m_content.contentContainer.layout.height;
+            if (float.IsNaN(viewportH) || float.IsNaN(contentH) || viewportH <= 0f) return;
+            float maxY = Mathf.Max(0f, contentH - viewportH);
+            var off = m_content.scrollOffset;
+            off.y = Mathf.Clamp(off.y, 0f, maxY);
+            m_content.scrollOffset = off;
+        }).StartingIn(0);
     }
 
     /// <summary>el が ancestor（含む同一）の子孫なら true。KeyBinding 行の Pad 部判定に使う。</summary>
@@ -955,7 +1015,7 @@ public class SettingsView : MonoBehaviour
         m_selectedCategoryIndex = (m_selectedCategoryIndex + 1) % m_categories.Count;
         m_selectedRowIndex = 0;
         ApplySidebarHighlight();
-        RenderContent();
+        RenderContent(resetScroll: true);
     }
 
     public void HandleKeyTabPrev()
@@ -965,7 +1025,7 @@ public class SettingsView : MonoBehaviour
         m_selectedCategoryIndex = (m_selectedCategoryIndex - 1 + m_categories.Count) % m_categories.Count;
         m_selectedRowIndex = 0;
         ApplySidebarHighlight();
-        RenderContent();
+        RenderContent(resetScroll: true);
     }
 
     public void HandleKeyCategoryJump(int oneBasedIndex)
@@ -1018,7 +1078,7 @@ public class SettingsView : MonoBehaviour
     public void RequestRebuild()
     {
         // RenderContent はイベント発火中の VisualElement 破棄を避けるため次フレームに遅延する。
-        m_root?.schedule.Execute(RenderContent).StartingIn(0);
+        m_root?.schedule.Execute(() => RenderContent(resetScroll: false)).StartingIn(0);
     }
 
     // ── KeyBinding ヘルパ ──────────────────────────
@@ -1085,6 +1145,6 @@ public class SettingsView : MonoBehaviour
 
         // UITDropdown の OnValueChanged 発火中に RenderContent で popup を破棄すると
         // 例外/popup 残留の懸念があるため、次フレームへ遅延する。
-        m_root?.schedule.Execute(RenderContent).StartingIn(0);
+        m_root?.schedule.Execute(() => RenderContent(resetScroll: false)).StartingIn(0);
     }
 }
