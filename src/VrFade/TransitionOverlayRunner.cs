@@ -53,7 +53,9 @@ namespace BG2VR.VrFade
         // overlay 残留＝視界に絵柄が貼り付くのを防ぐ（VrFadeRunner.ClearIfPushed と同型）。
         private void OnDestroy()
         {
-            if (m_lastVisible && VRModCore.SetTransitionOverlayState(false, 0f, m_lastWidth, m_lastDistance))
+            // hide（visible=false）は core 側で anchor 再計算が走らないため worldLock 値は無関係。引数整合のため config を直読みで渡す。
+            if (m_lastVisible && VRModCore.SetTransitionOverlayState(false, 0f, m_lastWidth, m_lastDistance,
+                    global::BG2VR.Configs.VrTransitionOverlayWorldLock.Value))
             {
                 m_lastVisible = false;
                 m_lastAlpha = 0f;
@@ -99,7 +101,10 @@ namespace BG2VR.VrFade
         private void Push(TransitionOverlayPolicy.Decision d, float width, float distance)
         {
             if (!d.ShouldPush) return;
-            if (VRModCore.SetTransitionOverlayState(d.Visible, d.Alpha, width, distance))
+            // worldLock の live トグルは可視 rising edge でのみ core が再アンカーする＝セッション途中のトグルは
+            // 次の遷移から反映（遷移は ~1-2s と短く許容）。
+            if (VRModCore.SetTransitionOverlayState(d.Visible, d.Alpha, width, distance,
+                    global::BG2VR.Configs.VrTransitionOverlayWorldLock.Value))
             {
                 m_lastVisible = d.Visible;
                 m_lastAlpha = d.Alpha;

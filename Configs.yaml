@@ -1613,6 +1613,13 @@
       description: 遷移絵柄 overlay の HMD からの距離(メートル)。
       ui: { kind: slider, step: 0.1, format: '{0:F1}m' }
 
+    - name: VrTransitionOverlayWorldLock
+      label: トランジション絵柄を空間固定
+      type: bool
+      default: true
+      description: 遷移絵柄を頭ロックでなく空間に固定して表示する(頭を回しても絵柄が動かない・UIパネル同様)。OFF で従来の頭追従。
+      ui: { kind: toggle }
+
 - section: Locomotion
   name: VR 移動
   configs:

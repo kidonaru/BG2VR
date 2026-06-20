@@ -223,6 +223,7 @@
 | `EnableVrTransitionOverlay` | `true` | VR トランジション絵柄<br>シーン遷移の絵柄トランジションを VR(HMD)側にも overlay 表示する。OFF 時は白フェードのみ。 |
 | `VrTransitionOverlayWidth` | `4.5` | トランジション絵柄の幅(m)<br>遷移絵柄 overlay の横幅(メートル)。大きいほど視界を覆う。 |
 | `VrTransitionOverlayDistance` | `1.5` | トランジション絵柄の距離(m)<br>遷移絵柄 overlay の HMD からの距離(メートル)。 |
+| `VrTransitionOverlayWorldLock` | `true` | トランジション絵柄を空間固定<br>遷移絵柄を頭ロックでなく空間に固定して表示する(頭を回しても絵柄が動かない・UIパネル同様)。OFF で従来の頭追従。 |
 
 ## [Locomotion] VR 移動
 
