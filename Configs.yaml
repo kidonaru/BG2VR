@@ -296,6 +296,13 @@
       description: VR コントローラのレーザーで world UI パネルを直接ポイント＆クリックする。
       ui: { kind: toggle }
 
+    - name: SuppressMouseInVr
+      label: VR中マウス無効
+      type: bool
+      default: true
+      description: VR表示中は物理マウスの入力（UIホバー/クリック・カメラ操作）を無効化する。VR操作はコントローラで行うため通常はON。
+      ui: { kind: toggle }
+
     - name: VrLaserVisible
       label: レーザー表示
       type: bool

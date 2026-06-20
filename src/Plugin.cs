@@ -53,6 +53,7 @@ namespace BG2VR
             go.AddComponent<BG2VR.ScenePinned.ScenePinnedPoseRunner>(); // 保存済み env を固定位置へ配置（カメラ追従を抑止）。follow より先に登録（抑止フラグを先に確定）。
             go.AddComponent<BG2VR.CameraFollow.CameraPositionFollowRunner>(); // ゲームカメラの位置変化を rig へ差分転写（回転無追従）。
             go.AddComponent<BG2VR.HandLighting.HandLightingRunner>(); // 手モデル専用 layer 28 を照らす自前 directional light（scene 光から isolation）。
+            go.AddComponent<BG2VR.MouseSuppress.MouseSuppressionRunner>(); // VR 中の物理マウス無効化（UI/カメラがマウス座標に反応するのを止める）。
 
             // 設定パネル（F10）。comfort スライダー（ConfigElement 直結）を注入してから初期化する。
             // 注: SetExtraEntries は SettingsController.Initialize より前に呼ぶ

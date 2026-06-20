@@ -71,6 +71,7 @@
     <Compile Include="../src/HeadLook/LookAtState.cs" Link="Linked/LookAtState.cs" />
     <Compile Include="../src/HeadLook/HeadLookSolver.cs" Link="Linked/HeadLookSolver.cs" />
     <Compile Include="../src/FramePacing/FramePacingPolicy.cs" Link="Linked/FramePacingPolicy.cs" />
+    <Compile Include="../src/MouseSuppress/MouseSuppressionPolicy.cs" Link="Linked/MouseSuppressionPolicy.cs" />
     <Compile Include="../src/VrLayers.cs" Link="Linked/VrLayers.cs" />
     <Compile Include="../src/UiSceneVoid/UiSceneVoidPolicy.cs" Link="Linked/UiSceneVoidPolicy.cs" />
     <Compile Include="../src/EyeCulling/EyeCullingPolicy.cs" Link="Linked/EyeCullingPolicy.cs" />
