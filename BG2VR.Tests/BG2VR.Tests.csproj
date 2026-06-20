@@ -101,6 +101,7 @@
     <Compile Include="../src/AhhnVr/AhhnEatJudge.cs" Link="Linked/AhhnEatJudge.cs" />
     <Compile Include="../src/VrInput/SettingsScrollMath.cs" Link="Linked/SettingsScrollMath.cs" />
     <Compile Include="../src/PostProcess/PostProcessPolicy.cs" Link="Linked/PostProcessPolicy.cs" />
+    <Compile Include="../src/SpatialVoice/SpatialVoiceLogic.cs" Link="Linked/SpatialVoiceLogic.cs" />
   </ItemGroup>
 
 </Project>

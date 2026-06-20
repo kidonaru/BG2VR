@@ -59,3 +59,28 @@ Oculus / Meta の名称・商標・ロゴは本プラグインのブランディ
   Licensed under Creative Commons Attribution 4.0 International (CC-BY 4.0)
   https://creativecommons.org/licenses/by/4.0/
   Modified: re-materialized (unlit shader, per-submesh color copy), baked into an AssetBundle.
+
+## Steam Audio (phonon.dll)
+
+本プラグインは、VR 中にキャストのボイスを真の HRTF（バイノーラル）で空間化するために、
+Valve の Steam Audio ネイティブライブラリ（Windows x64 `phonon.dll`）を同梱しています。
+未改変のバイナリをそのまま再配布しています（`plugins/BG2VR/phonon.dll`）。
+
+  Steam Audio by Valve Corporation
+  https://github.com/ValveSoftware/steam-audio
+  Version: 4.8.1 (STEAMAUDIO_VERSION = 264193 / 0x040801)
+  Licensed under the Apache License, Version 2.0
+  https://www.apache.org/licenses/LICENSE-2.0
+
+  Copyright 2017 Valve Corporation
+
+  Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+  this file except in compliance with the License. You may obtain a copy of the
+  License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software distributed
+  under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  CONDITIONS OF ANY KIND, either express or implied. See the License for the
+  specific language governing permissions and limitations under the License.

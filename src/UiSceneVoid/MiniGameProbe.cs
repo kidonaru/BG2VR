@@ -53,5 +53,11 @@ namespace BG2VR.UiSceneVoid
         /// （IsKaraoke/IsHandSumo の広い型 probe と同方針＝入力 gate 用の狭い probe は別）。</summary>
         public static bool IsAhhnForCast()
             => MiniGameBase.s_instance is AhhnGame ag && ag.m_ahhnMode is ForCastMode;
+
+        /// <summary>ASMR ミニゲーム進行中か（空間化ボイス抑制用＝近接親密ボイスは 2D 維持）。Release で s_instance=null＝自動 false 化。</summary>
+        public static bool IsAsmr() => MiniGameBase.s_instance is ASMR;
+
+        /// <summary>目隠し鬼（BlindFold）ミニゲーム進行中か（空間化ボイス抑制用）。Release で s_instance=null＝自動 false 化。</summary>
+        public static bool IsBlindFold() => MiniGameBase.s_instance is BlindFold;
     }
 }
