@@ -22,8 +22,9 @@ namespace BG2VR.WorldUi
     /// UI 調整ボタン（移動/拡大/曲面）の毎フレ統括。
     /// ProjectorRunner から VrPointerRunner.ComputeRay の直後・ProcessUi の前に呼ばれる。
     /// hover/engage 判定は凍結 ray（クリック精度）・ドラッグ計算は非凍結（凍結 0.3s の初動固着回避）。
-    /// 移動 = 位置のみ手に追従（engage 時の手→root 相対**位置**保持）。向きは PlacementSolver の
-    /// 自動制御（直立帯 + ドーム）＝手の回転はパネルを回さない（spec §3）。
+    /// 移動 = eye-centered aim（傾け＝コントローラ回転で目中心シェル上を距離一定で移動・push/pull で目距離だけ伸縮）。
+    /// 平行移動は配置に効かない（向き＝レーザーの狙いで決まる）。向きは PlacementSolver の自動制御
+    ///（直立帯 + ドーム＝円柱+上下ドーム）。AimCapture/AimResolve/PushPullDistance（spec §3）。
     /// 拡大 = レーザーピッチ差の指数マッピング → Configs.WorldUiSize 書き戻し（F10 と単一情報源）。
     /// 曲面 = Configs.WorldUiCurved 反転のみ（メッシュ再生成は ProjectorRunner の config watch）。
     /// ドラッグ中は SaveOnConfigSet を抑止し release/Reset で復元 + Save()
@@ -34,7 +35,8 @@ namespace BG2VR.WorldUi
     {
         private readonly PanelAdjustState m_state = new PanelAdjustState();
         private readonly GripPoseSmoother m_smoother = new GripPoseSmoother();
-        private Vector3 m_relPos;     // 移動: 手→root 相対位置（手 local。回転は自動制御＝保持しない）
+        private Vector3 m_aimDir;     // 移動: eye→パネルの方向（hand 回転フレーム・engage 捕捉）
+        private float m_aimDist;      // 移動: eye→パネルの距離（push/pull で伸縮）
         private float m_engageSize;   // 拡大: engage 時サイズ
         private float m_engagePitch;  // 拡大: engage 時ピッチ(rad)
         private bool m_cfgSuppressed; // SaveOnConfigSet 抑止中（idempotent 解除用）
@@ -89,28 +91,30 @@ namespace BG2VR.WorldUi
             if (r.Drag == PanelButtonKind.Move)
             {
                 // 手振れ平滑（engage 時 Reset＝平滑遅れ持ち越しによるジャンプ防止・locomotion と同じ）。
+                // eye-centered aim は handRot のみ使う（平行移動は配置に効かない＝目中心シェル上の照準）。
                 if (r.JustEngaged) m_smoother.Reset();
                 m_smoother.Update(
                     snap.RigLocalPosition, snap.RigLocalRotation,
                     dt, global::BG2VR.Configs.GrabMoveSmoothingTau.Value,
-                    out Vector3 handPos, out Quaternion handRot);
+                    out _, out Quaternion handRot);
 
                 Transform rt = panel.RootTransform;
                 if (rt != null)
                 {
                     if (r.JustEngaged)
                     {
-                        // engage 瞬間の「手→root」相対位置のみ捕捉（回転は自動制御なので保持しない）。
-                        PanelGrabSolver.ToFrame(handPos, handRot, rt.localPosition, rt.localRotation,
-                            out m_relPos, out _);
+                        // engage 時の eye→パネル方向を hand 回転フレームへ捕捉（距離はそのまま）。
+                        // 傾けでこの方向が handRot と一緒に振られ、目中心シェル上を距離一定で移動する。
+                        PanelGrabSolver.AimCapture(rt.localPosition, eyeLocalPos, handRot,
+                            out m_aimDir, out m_aimDist);
                     }
                     else
                     {
-                        // 押し引き（移動ドラッグ中スティック上下・masking 前の生 Stick・spec §6）
-                        m_relPos = PanelGrabSolver.PushPull(m_relPos, snap.Stick.y, dt);
+                        // 押し引き（移動ドラッグ中スティック上下・masking 前の生 Stick・spec §6）＝目距離のみ伸縮。
+                        m_aimDist = PanelGrabSolver.PushPullDistance(m_aimDist, snap.Stick.y, dt);
                     }
-                    // 位置 = 手追従（手の回転は relPos の腕として効く「レーザーポール」感のみ残る）。
-                    Vector3 pos = handPos + handRot * m_relPos;
+                    // 位置 = 目中心シェル上の照準点（傾け＝handRot で方向・push/pull で距離）。
+                    Vector3 pos = PanelGrabSolver.AimResolve(eyeLocalPos, handRot, m_aimDir, m_aimDist);
                     // 向き = 自動（常に視点側・直立帯 + ドーム・spec §3）。
                     Quaternion rot = PlacementSolver.ComputeRotation(
                         pos - eyeLocalPos, global::BG2VR.Configs.WorldUiUprightAngleDeg.Value);

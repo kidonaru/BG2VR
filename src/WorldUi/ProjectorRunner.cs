@@ -350,37 +350,53 @@ namespace BG2VR.WorldUi
                     m_panel.ApplyScale(m_lastSize);
                 }
             }
-            else if (!m_placed)
+            else
             {
-                // 未配置: 毎フレ eye 位置のみ追従（rig 軸相対＝頭の回転には連動しない静止配置。
-                // 遷移直後の目線高さ settle を吸収する・spec §5）。config に保存済みの配置
-                //（距離/高さ/ヨー）がそのまま復元される。最初の操作（上ボタン or
-                // トリガー click）で eye 位置追従も停止＝完全 rig 固定。
-                CaptureEyeOrigin();
-                ApplyPlacement();
-                if (cmds.PlaceConfirm) m_placed = true;
-            }
-            else if (cmds.RecenterNow)
-            {
-                // 配置済み: 上ボタン長押し（EnableVrButtons OFF 時は押下即時）で再センター＝
-                // ヨーを正面・高さを既定へ戻す escape hatch（spec §4）。距離はユーザーの保存値を維持。
-                Configs.WorldUiYaw.Value = 0f;
-                Configs.WorldUiVerticalOffset.Value = (float)Configs.WorldUiVerticalOffset.DefaultValue;
-                CaptureEyeOrigin();
-                ApplyPlacement();
-            }
-            else if (PoseConfigChanged())
-            {
-                // 距離/上下/ヨー/直立角スライダー: decode 再配置（config が単一情報源・spec §4）。
-                ApplyPlacement();
-            }
-            else if (Configs.WorldUiSize.Value != m_lastSize)
-            {
-                // サイズ: F10 スライダー or 拡大ドラッグの書き戻し（同一 watch ＝単一情報源・spec §6）。
-                // ApplyScale は WorldUiSize を書き戻さない＝この watch は単方向（書き戻しループなし）。
-                // スケールのみ反映・手動配置は保持（spec §5）。
-                m_lastSize = Configs.WorldUiSize.Value;
-                m_panel.ApplyScale(m_lastSize);
+                // 追従可否は m_placed（ボタン意味論）とは独立: WorldUiLockOnTap OFF（既定）は
+                // 常時 true＝タップ後も eye 位置追従を継続。ON は !m_placed の間だけ true＝
+                // 従来どおりタップ（PlaceConfirm）/ engage で固定（現状と機能的同等）。spec §3。
+                bool headFollow = !Configs.WorldUiLockOnTap.Value || !m_placed;
+
+                // PlaceConfirm は m_placed フリップ（ボタン意味論: 未配置→配置済）にのみ使う＝追従とは独立。
+                if (!m_placed && cmds.PlaceConfirm) m_placed = true;
+
+                // 再センター: 上ボタン長押し（EnableVrButtons OFF 時は押下即時）でヨーを正面・
+                // 高さを既定へ戻す escape hatch（spec §4）。距離はユーザー保存値を維持。config リセットのみ
+                // ここで行い、適用（CaptureEyeOrigin/ApplyPlacement）は下の追従/固定分岐に委ねる。
+                if (cmds.RecenterNow)
+                {
+                    Configs.WorldUiYaw.Value = 0f;
+                    Configs.WorldUiVerticalOffset.Value = (float)Configs.WorldUiVerticalOffset.DefaultValue;
+                }
+
+                if (headFollow)
+                {
+                    // 追従: 毎フレ eye 位置のみ追従（rig 軸相対＝頭の回転には連動しない静止配置。
+                    // 遷移直後の目線高さ settle を吸収・spec §5）。config 保存済みの配置（距離/高さ/ヨー）が
+                    // そのまま復元される。再センター時もここで eye 再捕捉＝今の頭の正面へリセットされる。
+                    // サイズ/各スライダー変更も ApplyPlacement が config から自動反映する。
+                    CaptureEyeOrigin();
+                    ApplyPlacement();
+                }
+                else if (cmds.RecenterNow)
+                {
+                    // 固定中の再センター: eye 位置を再捕捉してから（=今の頭の正面へ）ヨー0・高さ既定を適用。
+                    // CaptureEyeOrigin を省くと停止時点の古い原点基準になり正面に来ない（OLD と同一・機能的同等性のため必須）。
+                    CaptureEyeOrigin();
+                    ApplyPlacement();
+                }
+                else if (PoseConfigChanged())
+                {
+                    // 固定中: 距離/上下/ヨー/直立角スライダーの decode 再配置（config が単一情報源・spec §4）。
+                    ApplyPlacement();
+                }
+                else if (Configs.WorldUiSize.Value != m_lastSize)
+                {
+                    // 固定中サイズ: F10 スライダー or 拡大ドラッグの書き戻し（同一 watch ＝単一情報源・spec §6）。
+                    // ApplyScale は WorldUiSize を書き戻さない＝単方向。スケールのみ反映・手動配置は保持（spec §5）。
+                    m_lastSize = Configs.WorldUiSize.Value;
+                    m_panel.ApplyScale(m_lastSize);
+                }
             }
 
             // 曲面 watch（姿勢に影響しないため配置 if-else チェーンとは独立。

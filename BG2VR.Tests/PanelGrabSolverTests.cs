@@ -84,41 +84,65 @@ public class PanelGrabSolverTests
     }
 
     [Fact]
-    public void PushPull_スティックゼロは不変()
-    {
-        Vector3 rel = new Vector3(0f, 0f, 2f);
-        AssertNear(rel, PanelGrabSolver.PushPull(rel, 0f, 0.016f));
-    }
+    public void PushPullDistance_スティックゼロは不変()
+        => Assert.Equal(2f, PanelGrabSolver.PushPullDistance(2f, 0f, 0.016f), 5);
 
     [Fact]
-    public void PushPull_スティック上で距離が乗算的に伸びる_遠ざける方向()
-    {
-        // 方向の仕様固定（spec §4）: stickY>0（上）= 遠ざける。mag=2, stickY=1, dt=1 → 2·e^(1.0·1·1) ≈ 5.43656
-        Vector3 r = PanelGrabSolver.PushPull(new Vector3(0f, 0f, 2f), 1f, 1f);
-        Assert.Equal(2f * Mathf.Exp(PanelGrabSolver.PushPullRate), r.magnitude, 3);
-        AssertNear(Vector3.forward, r.normalized); // 方向は不変
-    }
+    public void PushPullDistance_上で乗算的に伸びる_遠ざける方向()
+        // 方向の仕様固定（spec §4）: stickY>0（上）= 遠ざける。2, dt=1 → 2·e^(1.0·1·1) ≈ 5.43656
+        => Assert.Equal(2f * Mathf.Exp(PanelGrabSolver.PushPullRate),
+                        PanelGrabSolver.PushPullDistance(2f, 1f, 1f), 3);
 
     [Fact]
-    public void PushPull_上限8mでclamp()
-    {
-        Vector3 r = PanelGrabSolver.PushPull(new Vector3(0f, 0f, 7f), 1f, 1f); // 7e^1≈19 → 8
-        Assert.Equal(PanelGrabSolver.MaxDistance, r.magnitude, 3);
-    }
+    public void PushPullDistance_上限8mでclamp()
+        => Assert.Equal(PanelGrabSolver.MaxDistance, PanelGrabSolver.PushPullDistance(7f, 1f, 1f), 3); // 7e≈19→8
 
     [Fact]
-    public void PushPull_下限0_5mでclamp()
-    {
-        Vector3 r = PanelGrabSolver.PushPull(new Vector3(0f, 0f, 1f), -1f, 2f); // e^-2≈0.135 → 0.5
-        Assert.Equal(PanelGrabSolver.MinDistance, r.magnitude, 3);
-    }
+    public void PushPullDistance_下限0_3mでclamp()
+        => Assert.Equal(0.3f, PanelGrabSolver.PushPullDistance(1f, -1f, 2f), 3); // e^-2≈0.135→0.3
 
     [Fact]
-    public void PushPull_既に下限未満なら引きでそれ以上縮まない()
-    {
+    public void PushPullDistance_既に下限未満なら引きで縮まない()
         // 下限は min(現在値, MinDistance)＝既に近い場合に押しで跳ねず、引きで現状維持。
-        Vector3 r = PanelGrabSolver.PushPull(new Vector3(0f, 0f, 0.3f), -1f, 1f);
-        Assert.Equal(0.3f, r.magnitude, 3);
+        => Assert.Equal(0.2f, PanelGrabSolver.PushPullDistance(0.2f, -1f, 1f), 3);
+
+    [Fact]
+    public void Aim_AimCaptureAimResolve_同handRotで往復が元位置()
+    {
+        // engage 非ジャンプ: 同じ handRot で捕捉→復元すると元のパネル位置に一致する。
+        Vector3 eye = new Vector3(0f, 1.5f, 0f);
+        Vector3 panel = new Vector3(0.3f, 1.4f, 1.8f);
+        Quaternion handRot = Yaw(25f) * RotX(15f);
+        PanelGrabSolver.AimCapture(panel, eye, handRot, out Vector3 dir, out float dist);
+        AssertNear(panel, PanelGrabSolver.AimResolve(eye, handRot, dir, dist));
+    }
+
+    [Fact]
+    public void Aim_傾けても目距離が一定_目中心シェル()
+    {
+        // 傾け（handRot 変化）でパネルは目中心シェル上を動く＝目からの距離は engage 値で一定（円柱+ドーム保証）。
+        Vector3 eye = new Vector3(0f, 1.5f, 0f);
+        Vector3 panel = new Vector3(0f, 1.5f, 2f); // 正面 2m
+        PanelGrabSolver.AimCapture(panel, eye, Quaternion.identity, out Vector3 dir, out float dist);
+        Assert.Equal(2f, dist, 3);
+        foreach (var rot in new[] { RotX(30f), RotX(-30f), Yaw(40f), Yaw(-40f) * RotX(20f) })
+        {
+            Vector3 pos = PanelGrabSolver.AimResolve(eye, rot, dir, dist);
+            Assert.Equal(dist, (pos - eye).magnitude, 3); // 距離一定
+        }
+    }
+
+    [Fact]
+    public void Aim_push引きでも目距離スケールのみ_方向はhandRot追従()
+    {
+        // push/pull は距離だけ変える。方向は傾け（handRot）で決まり、距離スケールでは変わらない。
+        Vector3 eye = new Vector3(0f, 1.5f, 0f);
+        Vector3 panel = new Vector3(0f, 1.5f, 2f);
+        PanelGrabSolver.AimCapture(panel, eye, Quaternion.identity, out Vector3 dir, out float dist);
+        float pulled = PanelGrabSolver.PushPullDistance(dist, -1f, 0.5f); // 引き寄せ
+        Assert.True(pulled < dist);
+        Vector3 pos = PanelGrabSolver.AimResolve(eye, Quaternion.identity, dir, pulled);
+        AssertNear(new Vector3(0f, 1.5f, eye.z + pulled), pos); // 正面のまま近づく
     }
 
     [Fact]

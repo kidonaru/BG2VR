@@ -29,6 +29,10 @@ namespace BG2VR.WorldUi
 
             m_camGo = new GameObject("BG2VR_UiCamera");
             m_camGo.hideFlags = HideFlags.HideAndDontSave;
+            // ScreenSpaceCamera 化した canvas plane を world z=0 に乗せる（カメラ forward=+z・planeDistance=1）。
+            // ゲームの InstantiateAsync(worldPositionStays=true) で動的生成される UI 子が canvas world z
+            // 由来の不正 local z を焼き込まれ不可視化するのを防ぐ（Pixi/SNS 空表示の真因・実測 2026-06-20）。
+            m_camGo.transform.position = new Vector3(0f, 0f, -PlaneDistance);
             Object.DontDestroyOnLoad(m_camGo);
 
             m_uiCamera = m_camGo.AddComponent<Camera>();
