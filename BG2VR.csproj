@@ -8,9 +8,9 @@
     前提:
       - BepInEx 6.0.0-be (Mono) 環境（FixMod / UnityVRMod と同居）。
       - UnityVRMod-fork を先にビルドしておくこと（既定は下記 dll を参照）:
-        ../UnityVRMod/Release/OpenXR/$(VrModConfig)/UnityVRMod.BepInEx.Mono_OpenXR.dll
+        UnityVRMod/Release/OpenXR/$(VrModConfig)/UnityVRMod.BepInEx.Mono_OpenXR.dll
         （$(VrModConfig) 既定 = UnityVRMod.BepInEx.Mono.Debug）。
-      - ゲーム本体 DLL は FixMod の Assembly/ フォルダを共有参照する。
+      - ゲーム本体 DLL は Assembly/（vendored・gitignore・初回 build 時に $(UnityManagedDir) から自動 populate）から参照する。
   -->
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -22,6 +22,11 @@
     <RootNamespace>BG2VR</RootNamespace>
     <!-- テストプロジェクト（BG2VR.Tests/）を既定 glob で巻き込まないよう src/ のみコンパイルする -->
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- submodule UnityVRMod/ を既定 glob（None/Content 等）から除外。除外しないと fork 同梱の IL2CPP 参照
+         （lib/cpp/Il2Cppmscorlib.dll・UniverseLib/lib/interop|unhollowed の Il2Cppmscorlib.dll 等）が
+         CandidateAssemblyFiles に混入し、System.Object / List<> が IL2CPP 版へ誤解決して CS0012 になる。
+         fork dll 本体は明示 Reference（HintPath）で参照するため除外の影響を受けない（2026-06-20 submodule 化で顕在化）。 -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);UnityVRMod\**</DefaultItemExcludes>
     <!-- net46 の fork dll を参照する際の mscorlib バージョン警告を抑制（Mono 実機では同一） -->
     <NoWarn>$(NoWarn);CS1701;BepInEx002</NoWarn>
     <RestoreAdditionalProjectSources>
@@ -33,6 +38,8 @@
     <!-- VR コア backend（OpenXR 既定。OpenVR は 2026-06-10 に削除）。assembly 名・パスが backend で変わるため変数化。 -->
     <VrModBackend Condition="'$(VrModBackend)' == ''">OpenXR</VrModBackend>
     <VrModAsmName Condition="'$(VrModAsmName)' == ''">UnityVRMod.BepInEx.Mono_$(VrModBackend)</VrModAsmName>
+    <!-- ゲーム Managed フォルダ（BG2VR.Tests と同源）。Assembly/ の不足 dll をここから populate する。別マシンは -p:UnityManagedDir=... で上書き。 -->
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">C:/Program Files (x86)/Steam/steamapps/common/BUNNY GARDEN 2/BUNNY GARDEN 2_Data/Managed</UnityManagedDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -78,40 +85,62 @@
   <!-- VR コア（UnityVRMod-fork）。BepInEx が別途ロードするので Private=false。 -->
   <ItemGroup>
     <Reference Include="$(VrModAsmName)">
-      <HintPath>..\UnityVRMod\Release\$(VrModBackend)\$(VrModConfig)\$(VrModAsmName).dll</HintPath>
+      <HintPath>UnityVRMod\Release\$(VrModBackend)\$(VrModConfig)\$(VrModAsmName).dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
 
-  <!-- ゲーム本体 DLL（FixMod の Assembly/ を共有参照。再配布不可なので Private=false） -->
+  <!-- ゲーム本体 DLL。Assembly/（vendored・gitignore・初回 build 時に $(UnityManagedDir) から自動 populate）から参照。再配布不可なので Private=false。 -->
   <ItemGroup>
     <Reference Include="Assembly-CSharp" Publicize="true">
-      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\Assembly-CSharp.dll</HintPath>
+      <HintPath>Assembly\Assembly-CSharp.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UniTask">
-      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\UniTask.dll</HintPath>
+      <HintPath>Assembly\UniTask.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <!-- F10 入力検出用。UnityEngine.Modules に含まれないため個別参照（実機にロード済なので Private=false） -->
     <Reference Include="Unity.InputSystem">
-      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\Unity.InputSystem.dll</HintPath>
+      <HintPath>Assembly\Unity.InputSystem.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <!-- WorldUiProjector の GraphicRaycaster 検出用（uGUI = UnityEngine.UI.dll。UnityEngine.Modules には含まれない） -->
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\UnityEngine.UI.dll</HintPath>
+      <HintPath>Assembly\UnityEngine.UI.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <!-- HandSkinMaterialResolver で ERISA Babydoll prefab を Addressables から非同期ロード（ResourceManager は AsyncOperationHandle 等の transitive 依存） -->
     <Reference Include="Unity.Addressables">
-      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\Unity.Addressables.dll</HintPath>
+      <HintPath>Assembly\Unity.Addressables.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.ResourceManager">
-      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\Unity.ResourceManager.dll</HintPath>
+      <HintPath>Assembly\Unity.ResourceManager.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
+
+  <!-- ゲーム参照 DLL（再配布不可）を Assembly/ に vendored snapshot として持つ。fresh clone 等で
+       不足分があればゲーム Managed フォルダ（BG2VR.Tests と同じ $(UnityManagedDir)）から複製する。
+       上書き防止は Exists ガード（既存 dll は _MissingGameAssembly に入らず Copy 対象外）が担う
+       ＝ゲーム更新と独立に snapshot 維持。SkipUnchangedFiles は二重防御。再 populate は rm -rf Assembly/。
+       参照解決（ResolveAssemblyReferences）前に走らせて HintPath を満たす。 -->
+  <ItemGroup>
+    <GameAssembly Include="Assembly-CSharp;UniTask;Unity.InputSystem;UnityEngine.UI;Unity.Addressables;Unity.ResourceManager" />
+  </ItemGroup>
+  <Target Name="PopulateGameAssemblies" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <_MissingGameAssembly Include="@(GameAssembly)" Condition="!Exists('$(MSBuildProjectDirectory)\Assembly\%(Identity).dll')" />
+    </ItemGroup>
+    <Error Condition="'@(_MissingGameAssembly)' != '' And !Exists('$(UnityManagedDir)/Assembly-CSharp.dll')"
+           Text="ゲーム参照 DLL が Assembly/ に無く、$(UnityManagedDir) からも複製できません。ゲームの Managed パスを -p:UnityManagedDir=&quot;C:/.../*_Data/Managed&quot; で指定してください。不足: @(_MissingGameAssembly)" />
+    <Copy Condition="'@(_MissingGameAssembly)' != ''"
+          SourceFiles="@(_MissingGameAssembly->'$(UnityManagedDir)/%(Identity).dll')"
+          DestinationFolder="$(MSBuildProjectDirectory)\Assembly"
+          SkipUnchangedFiles="true" />
+    <Message Condition="'@(_MissingGameAssembly)' != ''" Importance="high"
+             Text="[PopulateGameAssemblies] Assembly/ へ複製: @(_MissingGameAssembly)" />
+  </Target>
 
 </Project>

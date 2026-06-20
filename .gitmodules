@@ -1,0 +1,4 @@
+[submodule "UnityVRMod"]
+	path = UnityVRMod
+	url = https://github.com/kidonaru/UnityVRMod.git
+	branch = feat/bg2vr
