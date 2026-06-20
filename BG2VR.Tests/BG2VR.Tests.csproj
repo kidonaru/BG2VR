@@ -35,6 +35,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../src/VrInput/HandSkinShaderClassifier.cs" Link="Linked/HandSkinShaderClassifier.cs" />
+    <Compile Include="../src/VrInput/HandLayerResolver.cs" Link="Linked/HandLayerResolver.cs" />
     <Compile Include="../src/WorldUi/PlacementSolver.cs" Link="Linked/PlacementSolver.cs" />
     <Compile Include="../src/WorldUi/CanvasRootClassifier.cs" Link="Linked/CanvasRootClassifier.cs" />
     <Compile Include="../src/TransitionGuard/TransitionGuardState.cs" Link="Linked/TransitionGuardState.cs" />
@@ -90,6 +92,7 @@
     <Compile Include="../src/Locomotion/StickMoveSolver.cs" Link="Linked/StickMoveSolver.cs" />
     <Compile Include="../src/VrInput/VrCameraMask.cs" Link="Linked/VrCameraMask.cs" />
     <Compile Include="../src/VrInput/ChekiZoom.cs" Link="Linked/ChekiZoom.cs" />
+    <Compile Include="../src/VrInput/PropGlow.cs" Link="Linked/PropGlow.cs" />
     <Compile Include="../src/KaraokeShake/KaraokeShakeDetector.cs" Link="Linked/KaraokeShakeDetector.cs" />
     <Compile Include="../src/VrInput/NavRepeat.cs" Link="Linked/NavRepeat.cs" />
     <Compile Include="../src/VrInput/SettingsPanelInput.cs" Link="Linked/SettingsPanelInput.cs" />

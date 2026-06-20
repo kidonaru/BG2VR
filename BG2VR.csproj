@@ -103,6 +103,15 @@
       <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\UnityEngine.UI.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- HandSkinMaterialResolver で ERISA Babydoll prefab を Addressables から非同期ロード（ResourceManager は AsyncOperationHandle 等の transitive 依存） -->
+    <Reference Include="Unity.Addressables">
+      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\Unity.Addressables.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.ResourceManager">
+      <HintPath>..\BunnyGarden2FixMod\BunnyGarden2FixMod\Assembly\Unity.ResourceManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
 </Project>

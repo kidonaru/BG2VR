@@ -16,10 +16,11 @@ namespace BG2VR.Tests
         }
 
         [Fact]
-        public void Void_RendersBothVisualLayersWithSolidColorDark()
+        public void Void_RendersVisualLayersWithSolidColorDark()
         {
             var s = EyeCullingPolicy.Resolve(voidActive: true, dimActive: false, voidBrightness: 0.05f, dimBrightness: 0.1f);
-            // UI(30) + レーザー/コントローラ(29) の両層（片方欠けると UI-only 画面で消える）。
+            // UI(30) + レーザー/コントローラ(29) のみ。HandLighting(28) は fork の VR モデル overlay channel
+            // （SetVrModelOverlay）で main pass 除外+overlay pass 描画される＝eye cullingMask に含めない。
             Assert.Equal(VrLayers.VisualsMask | VrLayers.VisualsPostProcessedMask, s.CullingMask);
             Assert.Equal(CameraClearFlags.SolidColor, s.ClearFlags);
             Assert.Equal(new Color(0.05f, 0.05f, 0.05f, 1f), s.BackgroundColor);

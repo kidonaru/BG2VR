@@ -21,5 +21,13 @@ namespace BG2VR
 
         public const int VisualsPostProcessed = 29;
         public const int VisualsPostProcessedMask = 1 << VisualsPostProcessed;
+
+        /// <summary>手モデル専用 layer。存在意義は fork の SetVrModelOverlay に渡す overlay 描画チャネル選択＝
+        /// main pass から除外しつつ overlay pass で最前面描画する（UI=30 と同型）。HandLightingRunner が IsVrActive 時に
+        /// この mask を push する。手の照明は同 runner が global uniform（_BG2VR_HandLightDir/Color）で push＝Unity Light
+        /// component は spawn せず scene light からも独立。eye の void mask には含めない（overlay channel が描画を担保＝
+        /// 含めると main pass で二重描画になる・EyeCullingPolicy 参照）。</summary>
+        public const int HandLighting = 28;
+        public const int HandLightingMask = 1 << HandLighting;
     }
 }

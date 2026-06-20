@@ -29,6 +29,7 @@ namespace BG2VR
 
             // 生成 config を bind（PatchAll / runner / パネルが Value を参照するため最初に）。
             global::BG2VR.Configs.BindAll(Config);
+
             // パネルのグループ折りたたみ状態を bind（必須: 未呼出だと IsCollapsed/SetCollapsed で NRE）。
             BG2VR.Patches.Settings.SettingsCollapseState.Init(Config);
 
@@ -51,6 +52,7 @@ namespace BG2VR
             go.AddComponent<BG2VR.PostProcess.PostProcessCoordinator>(); // ゲームの post-process(グレーディング+Bloom)を eye に反映（DoF/CA は抑制）。
             go.AddComponent<BG2VR.ScenePinned.ScenePinnedPoseRunner>(); // 保存済み env を固定位置へ配置（カメラ追従を抑止）。follow より先に登録（抑止フラグを先に確定）。
             go.AddComponent<BG2VR.CameraFollow.CameraPositionFollowRunner>(); // ゲームカメラの位置変化を rig へ差分転写（回転無追従）。
+            go.AddComponent<BG2VR.HandLighting.HandLightingRunner>(); // 手モデル専用 layer 28 を照らす自前 directional light（scene 光から isolation）。
 
             // 設定パネル（F10）。comfort スライダー（ConfigElement 直結）を注入してから初期化する。
             // 注: SetExtraEntries は SettingsController.Initialize より前に呼ぶ

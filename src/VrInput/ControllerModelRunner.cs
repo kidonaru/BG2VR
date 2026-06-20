@@ -34,6 +34,16 @@ namespace BG2VR.VrInput
             public HandModelKind? BuiltKind; // Go を構築した種別（null=未構築）。種別変更時に作り直す
             public bool WarnedNoModel;
             public HandFingerPoser Poser; // 手のみ使用（GO 構築時に生成・指ボーンをキャッシュ）
+            public int LastResolverToken; // HandSkinMaterialResolver の Ready 遷移を追跡（採取完了時の自動再構築用）
+            // 手のみ: 構築時に捕捉した素体（Cast）影色 `_1st_ShadeColor`。per-frame で ×HandShadeFactor して書き戻す
+            // 記録源（live 反映の base）。unlit fallback（_1st_ShadeColor 不在）では Captured=false で適用しない。
+            public Color HandShadeBase;
+            public bool HandShadeBaseCaptured;
+            // アウトライン（inverted-hull・別レンダラー）専用。OutlineMat=per-frame 書込先（色/太さ・OwnedMats で破棄）。
+            // OutlineRenderers=構築時に保持した輪郭レンダラー群（per-frame の enabled 切替先＝毎フレ GetComponentsInChildren を避ける）。
+            // 輪郭子 GO は h.Go 配下＝DestroyState の Destroy(h.Go) で道連れ破棄。
+            public Material OutlineMat;
+            public readonly List<Renderer> OutlineRenderers = new List<Renderer>();
         }
 
         private readonly HandState m_left = new HandState();
@@ -42,11 +52,20 @@ namespace BG2VR.VrInput
         private static bool s_fallbackResolved;
         // 明るさ倍率を書き込む material プロパティ（ControllerUnlit / fallback UI/Default とも _Color を持つ）。
         private static readonly int s_colorId = Shader.PropertyToID("_Color");
+        // HDR emission プロパティ（HandToonOverlay のみ持つ）。サイリウム発光部に毎フレ書く。
+        private static readonly int s_emissionId = Shader.PropertyToID("_EmissionColor");
+        // toon 影色 / 影境界フェード（HandToonOverlay のみ持つ）。手・カラオケ楽器に毎フレ書く（F10 live）。
+        private static readonly int s_shadeColorId = Shader.PropertyToID("_1st_ShadeColor");
+        private static readonly int s_shadeFeatherId = Shader.PropertyToID("_ShadeFeather");
+        // アウトライン色 / 太さ（ToonOutline shader）。輪郭マテリアルに毎フレ書く（F10 live）。ZTest/Cull は構築時1回。
+        private static readonly int s_outlineColorId = Shader.PropertyToID("_OutlineColor");
+        private static readonly int s_outlineWidthId = Shader.PropertyToID("_OutlineWidth");
         // 未 bake フォールバック警告フラグは両手共有（per-hand 隔離しない）＝未 bake は両手共通事象のため意図的。
         private bool m_warnedHandFallback;
         private bool m_warnedCameraFallback;
         private bool m_warnedTambFallback;
         private bool m_warnedGlowFallback;
+        private bool m_warnedOutline; // アウトライン shader 未 bake 警告（両手共有・1 回のみ）
 
         // Meta Touch Plus FBX のネイティブユニット→メートル換算（構造定数）。
         // 実測（BG2DevBridge 2026-06-10）: モデルのネイティブ bbox ≈ 12.5 ユニット（実物 ~0.18m に対し約70倍）。
@@ -73,10 +92,20 @@ namespace BG2VR.VrInput
         // テクスチャ非同梱時の手のフラット肌色（アニメ調のフォールバック）。ゲームはトゥーン絵柄なので暖色寄りの肌。
         private static readonly Color HandSkinColor = new Color(1.0f, 0.85f, 0.74f, 1f);
 
+        // 手モデルのレイヤーは HandLayerResolver で決める（Hand=HandLighting(28) / 他=VisualsPostProcessed(29)）。
+        // layer 28 は scene の全 light の cullingMask に含まれない＝scene 光の影響を一切受けない（VIP 残留 light で
+        // 白飛びする退行を構造的に解消・2026-06-19）。BG2VR.HandLighting.HandLightingRunner が cullingMask=1<<28 only の
+        // 自前 directional light を rig 子に spawn し、これだけが手を照らす。
+
         public void Tick(Transform rig, in VrControllerSnapshot left, in VrControllerSnapshot right,
             HandModelKind leftKind, HandModelKind rightKind)
         {
             if (!Configs.ShowControllerModel.Value) { HideAll(); return; }
+
+            // ERISA Babydoll 素体マテリアルの非同期ロードを保証する（多重ガードあり・Loading/Ready/Failed なら no-op）。
+            // handTex はベース構築時の main tex 焼きにのみ使う。BG2VR セッション中 GetHandTexture() は不変前提。
+            // 手は常にトゥーン（HandToonOverlay）で描く＝無条件採取。採取失敗時のみ unlit fallback に落ちる。
+            HandSkinMaterialResolver.EnsureBegin(BundledControllerModels.GetHandTexture());
 
             // 種別は手ごとに解決（per-hand 切替＝grip+トリガーで ProjectorRunner が selector を回す）。
             // 例外は hand 単位で隔離する（片手の壊れたモデルが両手を巻き込まない）。
@@ -213,6 +242,15 @@ namespace BG2VR.VrInput
             // 旧種別 Mat（＝テクスチャ）が新メッシュに乗る（カメラにコントローラ tex が乗る実害・2026-06-13
             // BG2DevBridge で bundle 側 tex=正・実描画 Mat=旧 と確認）。fake-null への Destroy は no-op で安全。
             if (h.BuiltKind != null && h.BuiltKind != kind) DestroyState(h);
+            // 採取完了（ReadyToken 増分）を検出したら DestroyState 強制 → 同フレ内の下の `if (h.Go == null)` 経路で
+            // 再構築される＝unlit→Toon の自動切替（採取完了の次フレで反映）。
+            // 初回 Tick（h.LastResolverToken=0 / ReadyToken=0）は不一致でないので no-op＝採取前は副作用無し。
+            // Idle/Loading 中（ReadyToken=0）も同様に no-op。
+            else if (kind == HandModelKind.Hand
+                     && h.Go != null && h.LastResolverToken != HandSkinMaterialResolver.ReadyToken)
+            {
+                DestroyState(h);
+            }
 
             // GO 生成 / rig teardown 道連れ破棄（fake-null）後の再生成（同種別なら Material 保持＝再構築不要。
             // 種別変更時は上の DestroyState で Mat も破棄済み＝下で作り直す）。
@@ -240,14 +278,18 @@ namespace BG2VR.VrInput
                 h.Go = Object.Instantiate(prefab);
                 h.Go.name = $"BG2VR_{ModelTag(kind)}_{hand}";
                 h.Go.hideFlags = HideFlags.HideAndDontSave;
-                SetLayerRecursive(h.Go.transform, VrLayers.VisualsPostProcessed); // post 反映層（main pass 残留・グレーディング/Bloom が乗る・UiSceneVoid 中も eye 可視）
+                // Hand=HandLighting(28) 固定で BG2VR 自前 directional light のみが当たる構造。
+                // 他種別（コントローラ/カメラ/タンバリン/サイリウム）は従来通り VisualsPostProcessed(29) 維持。
+                SetLayerRecursive(h.Go.transform, HandLayerResolver.Resolve(kind));
                 // import の Animator/rig が混じっても静的表示で困らないよう Animator は止める。
                 foreach (var an in h.Go.GetComponentsInChildren<Animator>(true)) an.enabled = false;
 
                 if (kind == HandModelKind.Tambourine || kind == HandModelKind.GlowStick || kind == HandModelKind.Camera)
                 {
-                    // 色駆動プロップ（タンバリン/サイリウム/iPhone カメラ）はテクスチャ無し＝submesh ごとのマテリアル色を unlit へコピーして割当てる（単一マテリアル化で色潰れを防ぐ）。
-                    AssignColorDrivenMaterials(h);
+                    // 色駆動プロップ（タンバリン/サイリウム/iPhone カメラ）はテクスチャ無し＝submesh ごとのマテリアル色を割当てる（単一マテリアル化で色潰れを防ぐ）。
+                    // カラオケ楽器（タンバリン/サイリウム）はアニメ調 toon（HandToonOverlay）で描く。Cheki カメラは従来 unlit のまま。
+                    bool toon = kind == HandModelKind.Tambourine || kind == HandModelKind.GlowStick;
+                    AssignColorDrivenMaterials(h, toon);
                 }
                 else
                 {
@@ -259,6 +301,13 @@ namespace BG2VR.VrInput
                         {
                             h.OwnedMats.Add(h.Mat); // 破棄対象に登録（重複登録は h.Mat!=null ガードで防止）
                             h.MatBaseColor[h.Mat] = baseColor; // 明るさ適用の base 記録源
+                            // 手は素体（Cast）影色を捕捉＝per-frame で ×HandShadeFactor して live 反映する base。
+                            // unlit fallback（_1st_ShadeColor 不在）は Captured=false のまま＝影調整は適用しない。
+                            if (kind == HandModelKind.Hand && h.Mat.HasProperty(s_shadeColorId))
+                            {
+                                h.HandShadeBase = h.Mat.GetColor(s_shadeColorId);
+                                h.HandShadeBaseCaptured = true;
+                            }
                         }
                     }
                     // 全 renderer（本体 + 電池 quad 等・複数サブメッシュ含む）を bundle マテリアルへ差し替え。
@@ -272,15 +321,24 @@ namespace BG2VR.VrInput
                         }
                         r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                         r.receiveShadows = false;
+                        // 手は layer 28(overlay) で eye main render から除外＝どのカメラからも不可視。
+                        // SkinnedMeshRenderer は不可視だと skinning がスキップされ bind pose のまま
+                        // CommandBuffer.DrawRenderer 描画される（指ベンドが反映されない・実機検証 2026-06-19）。
+                        // updateWhenOffscreen=true で可視性に依らず毎フレ skinning させる。
+                        if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
                     }
                 }
                 h.BuiltKind = kind;
+                h.LastResolverToken = HandSkinMaterialResolver.ReadyToken; // 構築時の token を記録（次回 Ready 遷移で再構築）
                 // 手は指ベンド用に指ボーン+rest をキャッシュ（コントローラは不要）。Animator 無効化の後に呼ぶ。
                 if (kind == HandModelKind.Hand)
                 {
                     if (h.Poser == null) h.Poser = new HandFingerPoser();
                     h.Poser.Build(h.Go);
                 }
+                // アウトライン（inverted-hull）を別レンダラーとして構築（手/カラオケ楽器のみ・非対象は no-op）。
+                // 本体 renderer の再マテリアル走査は上で完了済み＝後から足す輪郭子は拾われない（double-process 回避）。
+                BuildOutline(h, kind);
             }
             if (h.Go.transform.parent != rig) h.Go.transform.SetParent(rig, false); // rig 差し替え追従
 
@@ -323,23 +381,211 @@ namespace BG2VR.VrInput
                     h.Poser.Relax(); // OFF にした瞬間に rest へ戻す
             }
 
+            // Hand 種別は肌色 Config（HandSkinColorR/G/B）を毎フレ 1x1 tex（HandSkinMaterialResolver の sentinel）に
+            // 書き戻す＝F10 で live 反映。tex 色 × LightColor で VIP/Bar の照明色変化を自然に受ける。
+            // MatBaseColor[h.Mat] = 白 で _Color が brightness 倍率の素通し（白×brightness）になる。
+            // shade1/2 color は素体のまま継承（実機判断 2026-06-19）。他種別は構築時の base 値を保持。
+            if (kind == HandModelKind.Hand && h.Mat != null)
+            {
+                var skinColor = new Color(
+                    Configs.HandSkinColorR.Value,
+                    Configs.HandSkinColorG.Value,
+                    Configs.HandSkinColorB.Value,
+                    1f);
+                HandSkinMaterialResolver.UpdateSkinColor(skinColor);
+                h.MatBaseColor[h.Mat] = Color.white;
+                // HandToonOverlay shader の MatCap 強度を F10 live 反映。HasProperty ガードで
+                // ControllerUnlit fallback には silent no-op。
+                if (h.Mat.HasProperty("_MatCap_Intensity"))
+                    h.Mat.SetFloat("_MatCap_Intensity", Configs.HandMatCapIntensity.Value);
+                // 影の濃さ（素体影色×HandShadeFactor・既定 1.0=素体のまま）と境界フェード（HandShadeFeather・既定 0=くっきり）を
+                // F10 live 反映。影色は捕捉済み base から作る＝brightness と独立。unlit fallback は Captured=false / HasProperty false で no-op。
+                if (h.HandShadeBaseCaptured && h.Mat.HasProperty(s_shadeColorId))
+                    h.Mat.SetColor(s_shadeColorId, ControllerModelPose.Brightened(h.HandShadeBase, Configs.HandShadeFactor.Value));
+                // feather は捕捉 base 非依存（Config 直書き）＝Captured ガード不要・HasProperty のみで fallback は no-op。
+                if (h.Mat.HasProperty(s_shadeFeatherId))
+                    h.Mat.SetFloat(s_shadeFeatherId, Configs.HandShadeFeather.Value);
+                // Cull は Resolver base で Cull=Back 固定（mirror も同一設定で正・per-hand 分岐不要・実機検証 2026-06-19）。
+            }
+
             // 明るさ倍率を毎フレ反映（F10 live・Subscribe 不要＝既存 offset config と同方式）。
-            // base×b を書く＝冪等。既定 1.0 は base そのまま＝現状と同値（回帰ゼロ）。
-            ApplyBrightness(h, Configs.CtrlModelBrightness.Value);
+            // base×b を書く＝冪等。Hand 種別は手専用 HandModelBrightness（実機チューニング 2026-06-19 で 1.0 が既定）、
+            // 他種別は従来通り CtrlModelBrightness（既定 0.8）を使う＝独立制御。
+            // カラオケ楽器（タンバリン/サイリウム）は共有 global light(0.63) の暗化を補正する専用 KaraokePropBrightness。
+            float brightness =
+                  kind == HandModelKind.Hand ? Configs.HandModelBrightness.Value
+                : (kind == HandModelKind.Tambourine || kind == HandModelKind.GlowStick) ? Configs.KaraokePropBrightness.Value
+                : Configs.CtrlModelBrightness.Value;
+            ApplyBrightness(h, brightness);
+
+            // カラオケ楽器（タンバリン/サイリウム）の影の濃さ + 境界フェードを毎フレ反映（F10 live）。
+            if (kind == HandModelKind.Tambourine || kind == HandModelKind.GlowStick) ApplyToonShade(h);
+
+            // サイリウムの発光部（彩度高 submesh）に HDR emission を毎フレ書く（live・Bloom 発光）。
+            // タンバリンは金/茶も彩度が高く誤発光するため scope 外（toon のみ）＝GlowStick 限定。
+            if (kind == HandModelKind.GlowStick) ApplyGlow(h);
 
             // Mat 無し（shader 全候補 strip）は描画するとマゼンタになるため非表示にする。
-            h.Go.SetActive(snap.Valid && h.Mat != null);
+            bool bodyVisible = snap.Valid && h.Mat != null;
+            h.Go.SetActive(bodyVisible);
+
+            // アウトライン（色/太さ live・enable 切替）を反映。非対象種別/未 bake は OutlineMat==null で no-op。
+            ApplyOutline(h, kind, bodyVisible);
         }
 
         /// <summary>手元モデル material の明るさを反映する。記録源 MatBaseColor を直接走査し、各 material の
-        /// base `_Color` に倍率を乗じて書く（OwnedMats 走査＋lookup だと記録漏れ material が黙ってスキップ
-        /// される＝適用漏れになるため、記録源を直接回して「記録した material は必ず適用」を構造保証する）。
-        /// bundled/UI-Default fallback とも `_Color` を持つので機能する（存在しなくても SetColor は無害 no-op）。</summary>
+        /// base 色プロパティに倍率を乗じて書く。`_Color`（unlit / UTS legacy）と `_BaseColor`（UTS 一次・URP 系で標準）
+        /// 両方に書く＝UTS Toon と自前 unlit の両方で機能する。存在しないプロパティへの Set* は無害 no-op。</summary>
         private static void ApplyBrightness(HandState h, float brightness)
         {
             foreach (var kv in h.MatBaseColor)
-                if (kv.Key != null)
-                    kv.Key.SetColor(s_colorId, ControllerModelPose.Brightened(kv.Value, brightness));
+            {
+                if (kv.Key == null) continue;
+                var c = ControllerModelPose.Brightened(kv.Value, brightness);
+                kv.Key.SetColor(s_colorId, c);
+                if (kv.Key.HasProperty("_BaseColor")) kv.Key.SetColor("_BaseColor", c);
+            }
+        }
+
+        /// <summary>カラオケ楽器（タンバリン/サイリウム）の影色 + 境界フェードを反映する（toon プロップ限定で呼ぶ）。
+        /// MatBaseColor（素色）を走査し各 submesh の `_1st_ShadeColor = 素色×KaraokePropShadeFactor`・
+        /// `_ShadeFeather = KaraokePropShadeFeather` を毎フレ書く（F10 live）。`_1st_ShadeColor` 不在マテリアル
+        /// （unlit fallback）は no-op。影色は brightness と独立（素色から作る）。</summary>
+        private static void ApplyToonShade(HandState h)
+        {
+            float factor = Configs.KaraokePropShadeFactor.Value;
+            float feather = Configs.KaraokePropShadeFeather.Value;
+            foreach (var kv in h.MatBaseColor)
+            {
+                if (kv.Key == null) continue;
+                if (kv.Key.HasProperty(s_shadeColorId))
+                    kv.Key.SetColor(s_shadeColorId, ControllerModelPose.Brightened(kv.Value, factor));
+                if (kv.Key.HasProperty(s_shadeFeatherId))
+                    kv.Key.SetFloat(s_shadeFeatherId, feather);
+            }
+        }
+
+        /// <summary>サイリウムの発光部に HDR emission を反映する（GlowStick 限定で呼ぶ）。MatBaseColor（素色・brightness
+        /// 乗算前）を走査し、彩度がしきい値以上の submesh のみ emission=素色×strength・それ以外は黒を書く（live・F10 反映）。
+        /// emission は MatBaseColor（素色）から作る＝ApplyBrightness の `_Color`×PropBrightness 補正を受けない。発光強度は
+        /// KaraokeGlowEmission のみで lit 明るさと独立に制御する意図。_EmissionColor 不在マテリアル（unlit fallback）は no-op。</summary>
+        private static void ApplyGlow(HandState h)
+        {
+            float thr = Configs.KaraokeGlowSaturationThreshold.Value;
+            float strength = Configs.KaraokeGlowEmission.Value;
+            foreach (var kv in h.MatBaseColor)
+            {
+                if (kv.Key == null || !kv.Key.HasProperty(s_emissionId)) continue;
+                Color emission = PropGlow.IsGlowing(kv.Value, thr)
+                    ? PropGlow.EmissionColor(kv.Value, strength)
+                    : Color.black;
+                kv.Key.SetColor(s_emissionId, emission);
+            }
+        }
+
+        /// <summary>アウトライン（inverted-hull）を別レンダラーとして構築する（手/カラオケ楽器のみ・非対象は no-op）。
+        /// 元モデルの各 renderer に「同 mesh を共有し ToonOutline で描く子レンダラー」を作る。子 GO は h.Go 配下＝
+        /// DestroyState で道連れ破棄。ZTest/Cull/ZWrite は構造的＝ここで 1 度だけ設定（per-frame は色/太さのみ）。
+        /// SMR（手）は bones/rootBone/sharedMesh を同一参照で共有＝同じスケルトンに従動（複製しない）。bundle 不在は no-op。</summary>
+        private void BuildOutline(HandState h, HandModelKind kind)
+        {
+            if (!(kind == HandModelKind.Hand || kind == HandModelKind.Tambourine || kind == HandModelKind.GlowStick)) return;
+            Shader sh = BundledShaders.ToonOutline;
+            if (sh == null)
+            {
+                if (!m_warnedOutline)
+                {
+                    m_warnedOutline = true;
+                    Plugin.Log.LogWarning("[ControllerModel] アウトライン shader が bundle に無い（未 bake?）。輪郭なしで継続。");
+                }
+                return;
+            }
+
+            // outlineMat は per-HandState で 1 枚（左右手・各プロップで別＝色/太さ/Cull を個別設定可）。
+            Material outlineMat = new Material(sh) { hideFlags = HideFlags.HideAndDontSave };
+            // 手は overlay の reversed-Z で GreaterEqual（本体 toon と同じ）/ プロップは URP main で LessEqual。
+            outlineMat.SetFloat("_ZTest", (float)(kind == HandModelKind.Hand
+                ? UnityEngine.Rendering.CompareFunction.GreaterEqual
+                : UnityEngine.Rendering.CompareFunction.LessEqual));
+            // inverted-hull は裏面＝Cull Front（手は invertCulling+mirror で per-hand 出し分けが要る可能性・spec §5）。
+            outlineMat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Front);
+            outlineMat.SetFloat("_ZWrite", 1f);
+            outlineMat.renderQueue = BG2VR.WorldUi.UiOverlayRenderPolicy.LaserQueue;
+            h.OwnedMats.Add(outlineMat);
+            h.OutlineMat = outlineMat;
+
+            // 元 renderer のみを走査（輪郭子はこの後に足すため snapshot 配列には入らない＝double-process なし）。
+            foreach (var src in h.Go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (src == null) continue;
+                Mesh mesh = src is SkinnedMeshRenderer ssmrSrc ? ssmrSrc.sharedMesh
+                          : src.GetComponent<MeshFilter>() is MeshFilter mfSrc ? mfSrc.sharedMesh : null;
+                if (mesh == null) continue;
+
+                var go = new GameObject("BG2VR_Outline") { hideFlags = HideFlags.HideAndDontSave };
+                // 本体 renderer の子に付ける＝overlay 列挙（GetComponentsInChildren の階層順）で本体の後に来る
+                // ＝描画順「本体→輪郭」が成立。reversed-Z + ZTest GreaterEqual + ZWrite で輪郭の膨張背面は本体前面
+                // より遠く落ち、シルエット縁のみ残る（inverted-hull 成立）。親付けを変えると描画順が崩れる不変条件。
+                go.transform.SetParent(src.transform, false); // identity local TRS＝src に座標一致で従動
+                go.layer = src.gameObject.layer;               // 元と同 layer（手=28 / プロップ=29）
+
+                Renderer outRenderer;
+                if (src is SkinnedMeshRenderer ssmr)
+                {
+                    var dsmr = go.AddComponent<SkinnedMeshRenderer>();
+                    dsmr.sharedMesh = ssmr.sharedMesh;  // mesh 共有
+                    dsmr.bones = ssmr.bones;            // 同じ bone Transform 群に従動（複製しない）
+                    dsmr.rootBone = ssmr.rootBone;
+                    dsmr.localBounds = ssmr.localBounds;
+                    dsmr.updateWhenOffscreen = true;    // overlay で skinning 維持（既存手と同条件）
+                    outRenderer = dsmr;
+                }
+                else
+                {
+                    go.AddComponent<MeshFilter>().sharedMesh = mesh; // mesh 共有
+                    outRenderer = go.AddComponent<MeshRenderer>();
+                }
+
+                // submesh 数ぶん同一 outlineMat（色は単一）。
+                int subs = Mathf.Max(1, mesh.subMeshCount);
+                var mats = new Material[subs];
+                for (int i = 0; i < subs; i++) mats[i] = outlineMat;
+                outRenderer.sharedMaterials = mats;
+                outRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                outRenderer.receiveShadows = false;
+                h.OutlineRenderers.Add(outRenderer);
+            }
+            Plugin.Log.LogInfo($"[ControllerModel] アウトライン構築（{kind}・renderer={h.OutlineRenderers.Count}）");
+        }
+
+        /// <summary>アウトラインの色/太さ（live）と表示 ON/OFF を反映する（全種別から呼ぶ＝非対象は OutlineMat==null で no-op）。
+        /// 色/太さは毎フレ OutlineMat に書く（F10 live）。enable は構築時保持の OutlineRenderers の enabled を切替
+        /// （毎フレ GetComponentsInChildren しない）。visible=本体表示状態（snap.Valid && Mat 有）＝本体非表示で輪郭も消す。</summary>
+        private static void ApplyOutline(HandState h, HandModelKind kind, bool visible)
+        {
+            if (h.OutlineMat == null) return; // 非対象種別 / 未 bake
+            bool enabled;
+            Color col;
+            float width;
+            if (kind == HandModelKind.Hand)
+            {
+                enabled = Configs.HandOutlineEnabled.Value;
+                col = new Color(Configs.HandOutlineColorR.Value, Configs.HandOutlineColorG.Value, Configs.HandOutlineColorB.Value, 1f);
+                width = Configs.HandOutlineWidth.Value;
+            }
+            else // Tambourine / GlowStick
+            {
+                enabled = Configs.KaraokePropOutlineEnabled.Value;
+                col = new Color(Configs.KaraokePropOutlineColorR.Value, Configs.KaraokePropOutlineColorG.Value, Configs.KaraokePropOutlineColorB.Value, 1f);
+                width = Configs.KaraokePropOutlineWidth.Value;
+            }
+            h.OutlineMat.SetColor(s_outlineColorId, col);
+            h.OutlineMat.SetFloat(s_outlineWidthId, width);
+
+            bool show = visible && enabled;
+            var list = h.OutlineRenderers;
+            for (int i = 0; i < list.Count; i++)
+                if (list[i] != null) list[i].enabled = show;
         }
 
         /// <summary>種別変更時に GO とマテリアルを破棄してリセット（前種別の Cull/tex を引き継がせない）。</summary>
@@ -356,6 +602,9 @@ namespace BG2VR.VrInput
             h.Mat = null;
             h.BuiltKind = null;
             h.WarnedNoModel = false;
+            h.HandShadeBaseCaptured = false; // 素体影色の捕捉も無効化（次回 Build で再捕捉＝Cast 採取完了の反映に必須）
+            h.OutlineMat = null;        // 輪郭マテリアルは OwnedMats で破棄済み・輪郭子 GO は h.Go 道連れ破棄
+            h.OutlineRenderers.Clear(); // 次回 BuildOutline で再生成（fake-null 参照を残さない）
             h.Poser = null; // 種別変更/teardown 時は指ボーンキャッシュも破棄（次回 Build で作り直す）
         }
 
@@ -378,6 +627,21 @@ namespace BG2VR.VrInput
             Texture2D tex = kind == HandModelKind.Hand
                 ? BundledControllerModels.GetHandTexture()
                 : BundledControllerModels.GetTexture(hand);
+
+            // 手モデルは ERISA Babydoll の素体マテリアルを優先採取（HandToonOverlay へ property コピー）。
+            //（ベース sentinel から per-hand コピー＝Ready のときのみ成功）。
+            // 未完了/失敗時は false を返し下の unlit fallback に落ちる（Home 起動直後の数秒の不変条件）。
+            if (kind == HandModelKind.Hand)
+            {
+                if (HandSkinMaterialResolver.TryResolve(out Material castMat, out Color castBase))
+                {
+                    Plugin.Log.LogInfo($"[ControllerModel] {kind}/{hand} ERISA素体マテリアルから構築（shader={castMat.shader.name}）");
+                    baseColor = castBase;
+                    return castMat;
+                }
+                // 採取未完了 or 失敗 → 既存 unlit 経路へ
+            }
+
             // base `_Color`（明るさ倍率の乗算元）: tex モデルは白（tex を素通し）/ tex 無しは単色（下の mat.color と同値）。
             baseColor = tex != null ? Color.white
                 : kind == HandModelKind.Hand ? HandSkinColor : new Color(0.5f, 0.5f, 0.5f, 1f);
@@ -421,9 +685,10 @@ namespace BG2VR.VrInput
         /// 各 submesh の元マテリアル `.color`（OBJ import の Kd / FBX import の DiffuseColor が `_Color`/`_BaseColor` に入る）を
         /// unlit へコピーし、色ごとに 1 枚を dedupe して作る（全 submesh に単一マテリアルを上書きすると色が潰れるため）。
         /// 生成物は h.PartColorMats（色キャッシュ・teardown 越し再利用）と h.OwnedMats（破棄対象）に登録する。</summary>
-        private static void AssignColorDrivenMaterials(HandState h)
+        private static void AssignColorDrivenMaterials(HandState h, bool toon)
         {
-            Shader bundled = BundledShaders.ControllerUnlit;
+            // toon = カラオケ楽器（タンバリン/サイリウム）はアニメ調 HandToonOverlay / それ以外（Cheki カメラ）は従来 unlit。
+            Shader bundled = toon ? BundledShaders.HandToonOverlay : BundledShaders.ControllerUnlit;
             Shader shader = bundled != null ? bundled : FindFallbackShader();
             int built = 0;
             foreach (var r in h.Go.GetComponentsInChildren<Renderer>(true))
@@ -435,7 +700,8 @@ namespace BG2VR.VrInput
                     Color c = src[i] != null ? ReadSourceColor(src[i]) : new Color(0.5f, 0.5f, 0.5f, 1f);
                     if (!h.PartColorMats.TryGetValue(c, out Material m))
                     {
-                        m = CreateUnlitTinted(shader, bundled != null, c);
+                        m = toon ? CreateToonTinted(shader, bundled != null, c)
+                                 : CreateUnlitTinted(shader, bundled != null, c);
                         h.PartColorMats[c] = m; // null も含めキャッシュ（shader 不在は session 中不変）
                         if (m != null)
                         {
@@ -483,6 +749,37 @@ namespace BG2VR.VrInput
             }
             else
             {
+                BG2VR.WorldUi.UiOverlayRenderPolicy.Apply(mat, BG2VR.WorldUi.UiOverlayRenderPolicy.LaserQueue, false);
+            }
+            return mat;
+        }
+
+        /// <summary>テクスチャ無し・単色 tint のアニメ調 toon マテリアルを 1 枚作る（カラオケ楽器 submesh 用）。
+        /// 手と同じ HandToonOverlay（2-tone shade / rim / global light _BG2VR_HandLight*）を流用する。
+        /// 影色 _1st_ShadeColor は base の自己暗色化（中立グレーを避け元色が分かるコントラスト）。matcap は使わない。
+        /// 前面ポリシーは BuildMaterial と同じ（ZTest LEqual + LaserQueue）。プロップは閉じたソリッド・mirror しない＝Cull Back。
+        /// 発光（_EmissionColor）は既定 0 のまま＝ApplyGlow が GlowStick の発光部だけ毎フレ書く。shader 不在なら null。</summary>
+        private static Material CreateToonTinted(Shader shader, bool bundled, Color color)
+        {
+            if (shader == null) return null;
+            Material mat = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+            mat.color = color; // mainTexture なし＝_Color の単色
+            if (bundled)
+            {
+                mat.SetColor("_1st_ShadeColor", ControllerModelPose.Brightened(color, Configs.KaraokePropShadeFactor.Value)); // 影=素色×係数（初期値・ApplyToonShade が live 更新）
+                mat.SetFloat("_ShadeFeather", Configs.KaraokePropShadeFeather.Value); // 影境界フェード（初期値・ApplyToonShade が live 更新）
+                mat.SetFloat("_MatCap_Intensity", 0f);                    // プロップは matcap なし（手と差別化）
+                // rim は shader 既定が手用の暖色（肌色 tone）＝プロップには不適。a=0 で無効化し 2-tone のみの
+                // クリーンな toon にする（material のビジュアル要素を全て明示制御＝手用既定の継承を断つ）。
+                mat.SetColor("_RimColor", new Color(0f, 0f, 0f, 0f));
+                mat.SetFloat("_ZTest", (float)UnityEngine.Rendering.CompareFunction.LessEqual);
+                mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back); // 閉じたソリッド＝Back（winding 正）
+                mat.SetFloat("_ZWrite", 1f);
+                mat.renderQueue = BG2VR.WorldUi.UiOverlayRenderPolicy.LaserQueue;
+            }
+            else
+            {
+                // bundle 不在の degrade（UI/Default 等）。toon にならないが手元が空にならない最終手段。
                 BG2VR.WorldUi.UiOverlayRenderPolicy.Apply(mat, BG2VR.WorldUi.UiOverlayRenderPolicy.LaserQueue, false);
             }
             return mat;

@@ -17,6 +17,8 @@ namespace BG2VR.VrInput
         private const string ControllerUnlitName = "BG2VR/ControllerUnlit";
         private const string UiAdditiveKeyedName = "BG2VR/UiAdditiveKeyed";
         private const string DepthOnlyName = "BG2VR/DepthOnly";
+        private const string HandToonOverlayName = "BG2VR/HandToonOverlay";
+        private const string ToonOutlineName = "BG2VR/ToonOutline";
 
         private static bool s_loaded;
         private static readonly Dictionary<string, Shader> s_byName = new Dictionary<string, Shader>();
@@ -29,6 +31,12 @@ namespace BG2VR.VrInput
 
         /// <summary>選択的深度プリパス用 深度のみ書き込み shader（ColorMask 0・ZWrite On）。失敗時 null（コントローラ遮蔽 OFF）。</summary>
         public static Shader DepthOnly => Get(DepthOnlyName);
+
+        /// <summary>手モデル専用 URP 非依存 Toon shader（2-tone shade / rim / matcap・global uniform _BG2VR_HandLightDir/Color 読み）。失敗時 null（呼び出し側 fallback）。</summary>
+        public static Shader HandToonOverlay => Get(HandToonOverlayName);
+
+        /// <summary>inverted-hull アウトライン shader（裏面を法線方向に膨張・solid 色・別レンダラーとして描画）。失敗時 null（アウトライン無し）。</summary>
+        public static Shader ToonOutline => Get(ToonOutlineName);
 
         private static Shader Get(string name)
         {

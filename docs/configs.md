@@ -99,6 +99,18 @@
 | `HandModelRotOffsetY` | `-13` | 手回転補正Y(度)<br>手3Dモデルの回転補正Y(yaw)。 |
 | `HandModelRotOffsetZ` | `-8` | 手回転補正Z(度)<br>手3Dモデルの回転補正Z(roll)。 |
 | `HandModelScale` | `0.85` | 手拡大率<br>手3Dモデルの拡大率。コード側base補正(1.0)後の微調整(effective=本値×1.0)。 |
+| `HandModelBrightness` | `1.0` | 手モデル明るさ<br>手3Dモデル専用の明るさ倍率(1.0=元の肌色)。コントローラ等の他種別は CtrlModelBrightness を使う(別系統)。実機チューニング 2026-06-19 で手は 1.0 がちょうど良いことを確認。 |
+| `HandShadeFactor` | `1.0` | 手モデルの影の濃さ<br>手3Dモデルの影色の濃さ。素体(Cast)の影色×この値が影色になる。1.0=素体のまま、小さいほど影が濃い。 |
+| `HandShadeFeather` | `0.0` | 手モデルの影境界フェード<br>手3Dモデルの影と光の境界のなめらかさ。0=くっきり(従来どおり)、大きいほど境界がフェードする。 |
+| `HandOutlineEnabled` | `true` | 手モデルのアウトライン<br>手3Dモデルにアニメ調のアウトライン(輪郭線)を描く。OFFで従来どおり輪郭なし。 |
+| `HandOutlineColorR` | `0.1` | 手アウトライン色R<br>手モデルのアウトライン色(R成分)。F10でlive反映。 |
+| `HandOutlineColorG` | `0.05` | 手アウトライン色G<br>手モデルのアウトライン色(G成分)。 |
+| `HandOutlineColorB` | `0.05` | 手アウトライン色B<br>手モデルのアウトライン色(B成分)。 |
+| `HandOutlineWidth` | `0.002` | 手アウトライン太さ(m)<br>手モデルのアウトラインの太さ(メートル・world space)。0で消える。実機live調整用(0.2mm刻み)。 |
+| `HandSkinColorR` | `1.0` | 手モデル肌色R<br>手3Dモデルの肌色(R成分)。F10 でlive反映。shade色も連動して暗くなる(0.7倍/0.4倍の中間影/濃影)。 |
+| `HandSkinColorG` | `0.85` | 手モデル肌色G<br>手3Dモデルの肌色(G成分)。F10 でlive反映。 |
+| `HandSkinColorB` | `0.74` | 手モデル肌色B<br>手3Dモデルの肌色(B成分)。F10 でlive反映。 |
+| `HandMatCapIntensity` | `1.0` | 手モデルMatCap強度<br>手3DモデルのMatCap(球面ハイライト)強度。0で消える/2で最大強調。Cast由来matcap_skin texを使う。F10でlive反映。 |
 | `BendFingers` | `true` | 指を曲げる<br>ハンドモデルの指をトリガー(人差し指)/グリップ(他4本)の押し込み量で曲げる。要skin済み手バンドル(再bake)。 |
 | `FingerCurlMaxDeg` | `68` | 指の最大曲げ角(度)<br>人差し指(トリガー)と中・薬・小指(グリップ)の関節1つあたり最大曲げ角。実機で詰める。 |
 | `ThumbCurlMaxDeg` | `12` | 親指の最大曲げ角(度)<br>親指(グリップ)の関節1つあたり最大曲げ角。親指は張り出すため他指と分離。 |
@@ -158,6 +170,16 @@
 | `KaraokeGlowRotOffsetY` | `173` | サイリウム回転補正Y(度)<br>右手サイリウムの回転補正Y(yaw)。 |
 | `KaraokeGlowRotOffsetZ` | `0` | サイリウム回転補正Z(度)<br>右手サイリウムの回転補正Z(roll)。 |
 | `KaraokeGlowScale` | `1.3` | サイリウム拡大率<br>右手サイリウムの拡大率。コード側base補正後の微調整(1.0で実寸目安)。 |
+| `KaraokeGlowEmission` | `2.5` | サイリウム発光強度<br>右手サイリウム発光部(チューブ)のHDR発光強度。素色×この値を毎フレ書き、内部HDRバッファ経由でBloomに拾われ発光する。0で発光オフ。 |
+| `KaraokeGlowSaturationThreshold` | `0.35` | サイリウム発光彩度しきい値<br>サイリウムで発光させる「ピンク部分」を選ぶ彩度しきい値。彩度がこの値以上のsubmeshだけ発光する。下げるとCore(薄ピンク)も発光する。 |
+| `KaraokePropBrightness` | `1.5` | カラオケ楽器の明るさ<br>タンバリン/サイリウムのアニメ調描画の明るさ。手と共有のglobal light(0.63)による暗化を補正する。コントローラ/カメラとは独立。 |
+| `KaraokePropShadeFactor` | `0.55` | カラオケ楽器の影の濃さ<br>タンバリン/サイリウムのアニメ調の影色。素色×この値が影色になる。小さいほど影が濃い(1.0で影なし)。 |
+| `KaraokePropShadeFeather` | `0.1` | カラオケ楽器の影境界フェード<br>タンバリン/サイリウムの影と光の境界のなめらかさ。0=くっきり2-tone、大きいほど境界がフェードする。 |
+| `KaraokePropOutlineEnabled` | `true` | カラオケ楽器のアウトライン<br>タンバリン/サイリウムにアニメ調のアウトライン(輪郭線)を描く。OFFで従来どおり輪郭なし。 |
+| `KaraokePropOutlineColorR` | `0.05` | 楽器アウトライン色R<br>タンバリン/サイリウムのアウトライン色(R成分)。F10でlive反映。 |
+| `KaraokePropOutlineColorG` | `0.05` | 楽器アウトライン色G<br>タンバリン/サイリウムのアウトライン色(G成分)。 |
+| `KaraokePropOutlineColorB` | `0.05` | 楽器アウトライン色B<br>タンバリン/サイリウムのアウトライン色(B成分)。 |
+| `KaraokePropOutlineWidth` | `0.002` | 楽器アウトライン太さ(m)<br>タンバリン/サイリウムのアウトラインの太さ(メートル・world space)。0で消える。実機live調整用(0.2mm刻み)。 |
 | `HandSumoPushEnabled` | `true` | 手押し相撲 押し出し入力<br>手押し相撲中、両手を前に出す動作でクリック判定を発火する。両手同時のみ（片手では発火しない）。A ボタンでも従来どおりクリック可。 |
 | `ShowHandSumoHands` | `true` | 手押し相撲 両手ハンド固定<br>手押し相撲中、両手モデルをハンドに固定する（見た目のみ。両手非コントローラ＝レーザーは終始 suppress）。要 ShowControllerModel=ON。終了で自動復帰。 |
 | `HandSumoPushThreshold` | `0.7` | 押し出し検知しきい値(m/s)<br>前進(前方向)線速度の発火しきい値。低いほど軽い押しで反応。実機で調整。 |

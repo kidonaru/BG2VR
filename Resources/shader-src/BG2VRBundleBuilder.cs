@@ -9,6 +9,10 @@ public static class BG2VRBundleBuilder
     private const string ShaderPath = "Assets/BG2VRShaders/ControllerUnlit.shader";
     private const string UiAdditiveKeyedShaderPath = "Assets/BG2VRShaders/UiAdditiveKeyed.shader";
     private const string DepthOnlyShaderPath = "Assets/BG2VRShaders/DepthOnly.shader";
+    // URP 非依存自作 Toon shader（手モデル専用・rim/matcap/2-tone shade・global uniform 経由 light push）。
+    private const string HandToonOverlayShaderPath = "Assets/BG2VRShaders/HandToonOverlay.shader";
+    // inverted-hull アウトライン shader（手/カラオケ楽器の別レンダラー輪郭・裏面膨張）。
+    private const string ToonOutlineShaderPath = "Assets/BG2VRShaders/ToonOutline.shader";
     private const string BundleName = "bg2vr_shaders";
 
     [MenuItem("BG2VR/Build Shader Bundle")]
@@ -21,7 +25,7 @@ public static class BG2VRBundleBuilder
         var build = new AssetBundleBuild
         {
             assetBundleName = BundleName,
-            assetNames = new[] { ShaderPath, UiAdditiveKeyedShaderPath, DepthOnlyShaderPath },
+            assetNames = new[] { ShaderPath, UiAdditiveKeyedShaderPath, DepthOnlyShaderPath, HandToonOverlayShaderPath, ToonOutlineShaderPath },
         };
 
         // ゲームは Windows x64 standalone。明示ターゲットでビルド。

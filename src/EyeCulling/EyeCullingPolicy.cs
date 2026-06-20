@@ -34,9 +34,12 @@ namespace BG2VR.EyeCulling
         public static EyeCullingState Resolve(bool voidActive, bool dimActive, float voidBrightness, float dimBrightness)
         {
             if (voidActive)
-                // VR 視覚物 2 層（UI=30 / レーザー・コントローラ=29）の両方を描く。
-                // 片方でも欠けると UI-only 画面でレーザー/コントローラが消える。
-                return new EyeCullingState(VrLayers.VisualsMask | VrLayers.VisualsPostProcessedMask, CameraClearFlags.SolidColor, Gray(voidBrightness));
+                // VR 視覚物 2 層（UI=30 / レーザー・コントローラ=29）。HandLighting(28) はここに含めない＝
+                // fork の SetVrModelOverlay 経路で main pass 除外 + overlay pass で最前面描画される（UI 同様）。
+                // 含めるとレーザー越しに見えなくなり、また cullingMask が main pass で立つと二重描画する。
+                return new EyeCullingState(
+                    VrLayers.VisualsMask | VrLayers.VisualsPostProcessedMask,
+                    CameraClearFlags.SolidColor, Gray(voidBrightness));
             if (dimActive)
                 return new EyeCullingState(BaseMask, CameraClearFlags.SolidColor, Gray(dimBrightness));
             return new EyeCullingState(BaseMask, CameraClearFlags.Skybox, Color.black);
