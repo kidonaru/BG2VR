@@ -12,6 +12,7 @@
     "release": "./tools/release.sh"
   },
   "devDependencies": {
-    "vitepress": "^1.5.0"
+    "vitepress": "^1.5.0",
+    "vue-tweet": "^2.4.0"
   }
 }
