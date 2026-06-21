@@ -32,6 +32,8 @@ namespace BG2VR.Locomotion
             if (!vrActive) { m_gesture.Clear(); return; }
 
             // 両手 Grip 長押し（locomotion 設定から独立・常時有効）。
+            // grip snapshot は前回 Sync 時刻の値で 1 フレーム古いことがあるが、ここでは「発火トリガ」にのみ使う。
+            // recenter の基準となる頭 pose は fork の TryApplyRecenter が当フレームで都度 locate する＝両者は意図的に独立。
             VrControllerSnapshot left = VRModCore.GetControllerSnapshot(VrHand.Left);
             VrControllerSnapshot right = VRModCore.GetControllerSnapshot(VrHand.Right);
             if (m_gesture.Update(left.Valid, left.Grip, right.Valid, right.Grip, Time.deltaTime))
