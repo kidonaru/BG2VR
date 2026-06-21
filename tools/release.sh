@@ -114,10 +114,9 @@ gen_notes() {
     echo "- 初回リリース"
   fi
   echo
-  echo "## インストール"
-  echo "1. BepInEx 5 (Unity Mono) + Doorstop 4.5.0 導入済みの BUNNY GARDEN 2 を用意（FixMod と共存可）"
-  echo "2. zip を BUNNY GARDEN 2 フォルダに解凍（BepInEx/ と BUNNY GARDEN 2_Data/ が自動配置）"
-  echo "   詳細は同梱 README.md を参照。"
+  echo "インストール・機能・操作方法・設定・ビルド手順など、使い方はすべてドキュメントサイトにまとめています。"
+  echo
+  echo "📖 **https://kidonaru.github.io/BG2VR/**"
   echo
   echo "GPL v3 / source: https://github.com/kidonaru/BG2VR"
 }
