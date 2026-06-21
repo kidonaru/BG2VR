@@ -16,3 +16,8 @@ Thumbs.db
 # === ゲーム参照 DLL（再配布不可・初回 build 時に Managed から自動 populate） ===
 /Assembly/
 dist/
+
+# === VitePress / Node（docs サイト。package.json はリポジトリルート） ===
+node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/

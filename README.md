@@ -5,6 +5,8 @@
 OpenXR 対応 HMD で『Bunny Garden 2』を一人称 VR としてプレイできるようにする companion MOD です。
 ゲーム本体には手を入れず、BepInEx + Harmony で VR レンダリング・入力・UI 投影を後付けします。
 
+> 📖 詳しい使い方は [ドキュメントサイト](https://kidonaru.github.io/BG2VR/)（公開準備中）を参照してください。
+
 > ⚠️ バージョンは 0.x（開発中）です。互換性は保証されません。
 
 ## 主な機能
