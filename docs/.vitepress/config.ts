@@ -1,11 +1,16 @@
 import { defineConfig } from 'vitepress';
 
+// GitHub Pages のサブパス。favicon 等 head のリソースは base を自動付与されないため共有する
+const base = '/BG2VR/';
+
 export default defineConfig({
   lang: 'ja-JP',
   title: 'BG2VR',
   description: 'Bunny Garden 2 を VR 化する BepInEx プラグインのユーザーガイド',
-  base: '/BG2VR/',
+  base,
+  head: [['link', { rel: 'icon', href: `${base}favicon.ico` }]],
   themeConfig: {
+    logo: '/favicon.png',
     nav: [
       { text: 'ガイド', link: '/' },
       { text: '設定リファレンス', link: '/configs' },
