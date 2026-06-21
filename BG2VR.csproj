@@ -6,7 +6,7 @@
     遷移ガード（②TransitionGuard）/ カメラ供給（①CameraBridge）を Harmony で「包む」。
 
     前提:
-      - BepInEx 6.0.0-be (Mono) 環境（FixMod / UnityVRMod と同居）。
+      - BepInEx 5 (Unity Mono) 環境（FixMod / UnityVRMod と同居）。
       - UnityVRMod-fork を先にビルドしておくこと（既定は下記 dll を参照）:
         UnityVRMod/Release/OpenXR/$(VrModConfig)/UnityVRMod.BepInEx.Mono_OpenXR.dll
         （$(VrModConfig) 既定 = UnityVRMod.BepInEx.Mono.Debug）。
@@ -73,10 +73,10 @@
     <Error Condition="!Exists('docs\configs.md')" Text="[GenerateConfigs] FAILED: docs\configs.md was not produced." />
   </Target>
 
-  <!-- BepInEx 6 (Mono) -->
+  <!-- BepInEx 5 (Mono) -->
   <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
-    <PackageReference Include="BepInEx.Unity.Mono" Version="6.0.0-*" />
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
     <PackageReference Include="UnityEngine.Modules" Version="6000.0.31" IncludeAssets="compile" />
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.*" PrivateAssets="all" />
