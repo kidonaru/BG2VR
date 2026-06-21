@@ -51,6 +51,7 @@ namespace BG2VR
             go.AddComponent<BG2VR.PostProcess.PostProcessCoordinator>(); // ゲームの post-process(グレーディング+Bloom)を eye に反映（DoF/CA は抑制）。
             go.AddComponent<BG2VR.ScenePinned.ScenePinnedPoseRunner>(); // 保存済み env を固定位置へ配置（カメラ追従を抑止）。follow より先に登録（抑止フラグを先に確定）。
             go.AddComponent<BG2VR.CameraFollow.CameraPositionFollowRunner>(); // ゲームカメラの位置変化を rig へ差分転写（回転無追従）。
+            go.AddComponent<BG2VR.Locomotion.RecenterRunner>(); // 起動時(初回)+両手Grip長押しで正面リセット（fork の reference space recenter を発火）。
             go.AddComponent<BG2VR.SpatialVoice.SpatialVoiceRunner>(); // VR 中、キャストのボイスを Steam Audio HRTF で空間化（本体 voice をミラー）。
             go.AddComponent<BG2VR.HandLighting.HandLightingRunner>(); // 手モデル専用 layer 28 を照らす自前 directional light（scene 光から isolation）。
             go.AddComponent<BG2VR.MouseSuppress.MouseSuppressionRunner>(); // VR 中の物理マウス無効化（UI/カメラがマウス座標に反応するのを止める）。

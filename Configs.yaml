@@ -15,6 +15,13 @@
       description: VR 中、プレイヤー酩酊時の酔いカメラ回転（揺れ）を抑制する。
       ui: { kind: toggle }
 
+    - name: RecenterOnStartup
+      label: 起動時に正面リセット
+      type: bool
+      default: true
+      description: VR 開始時に一度だけ、今の頭の向き・水平位置を正面（原点）にリセットする。両手 Grip 1 秒長押しでいつでも手動リセット可（高さは維持）。
+      ui: { kind: toggle }
+
     - name: VrDesktopLowRes
       label: VR中デスクトップ低解像度
       type: bool
