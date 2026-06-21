@@ -221,7 +221,7 @@
 |------|-----------|------|
 | `EnableVrFade` | `true` | VR フェード同期<br>シーン遷移等のゲーム画面フェード(暗転/ホワイトアウト)を VR(HMD)側にも同期する。 |
 | `EnableVrTransitionOverlay` | `true` | VR トランジション絵柄<br>シーン遷移の絵柄トランジションを VR(HMD)側にも overlay 表示する。OFF 時は白フェードのみ。 |
-| `VrTransitionOverlayWidth` | `4.5` | トランジション絵柄の幅(m)<br>遷移絵柄 overlay の横幅(メートル)。大きいほど視界を覆う。 |
+| `VrTransitionOverlayWidth` | `3.0` | トランジション絵柄の幅(m)<br>遷移絵柄 overlay の横幅(メートル)。大きいほど視界を覆う。 |
 | `VrTransitionOverlayDistance` | `1.5` | トランジション絵柄の距離(m)<br>遷移絵柄 overlay の HMD からの距離(メートル)。 |
 | `VrTransitionOverlayWorldLock` | `true` | トランジション絵柄を空間固定<br>遷移絵柄を頭ロックでなく空間に固定して表示する(頭を回しても絵柄が動かない・UIパネル同様)。OFF で従来の頭追従。 |
 
@@ -287,7 +287,7 @@
 |------|-----------|------|
 | `VrSpatialVoice` | `true` | 空間化ボイス<br>VR 中、キャストのボイスを真の HRTF（バイノーラル）で空間化する。頭を向けると定位が動き、上下・前後・頭外定位（externalization）まで出る。本体 voice をミュートして専用ソースへミラーするため、非 VR / OFF / native 失敗時は素の 2D（回帰なし）。 |
 | `VoiceHrtfSpatialBlend` | `1.0` | 空間化ブレンド<br>HRTF の空間化度合い（Steam Audio の spatialBlend 直結）。1=完全空間化 / 0=非空間化寄り（明瞭度重視）。聞き取りづらければ下げる。 |
-| `VoiceMinDistance` | `0.5` | 減衰開始距離(m)<br>この距離（HMD からキャストの口元まで）以内は距離減衰なし。rig の World Scale で実効距離が変わるため実機で詰める。 |
-| `VoiceMaxDistance` | `8.0` | 減衰しきる距離(m)<br>この距離以遠でボイスが減衰しきる（無音）。減衰開始距離との間は線形。キャストが遠いシーンで無音にならないよう実機で詰める。 |
+| `VoiceMinDistance` | `0.3` | 減衰開始距離(m)<br>この距離（HMD からキャストの口元まで）以内は距離減衰なし。rig の World Scale で実効距離が変わるため実機で詰める。 |
+| `VoiceMaxDistance` | `4.0` | 減衰しきる距離(m)<br>この距離以遠でボイスが減衰しきる（無音）。減衰開始距離との間は線形。キャストが遠いシーンで無音にならないよう実機で詰める。 |
 | `VoiceMouthForwardOffset` | `0.1` | 口元前方オフセット(m)<br>頭ボーン位置から口元への前方オフセット。音源位置を顔の前方へずらして定位を自然にする。 |
 

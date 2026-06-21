@@ -1600,7 +1600,7 @@
     - name: VrTransitionOverlayWidth
       label: トランジション絵柄の幅(m)
       type: float
-      default: 4.5
+      default: 3.0
       range: [0.5, 8.0]
       description: 遷移絵柄 overlay の横幅(メートル)。大きいほど視界を覆う。
       ui: { kind: slider, step: 0.1, format: '{0:F1}m' }
@@ -1936,7 +1936,7 @@
     - name: VoiceMinDistance
       label: 減衰開始距離(m)
       type: float
-      default: 0.5
+      default: 0.3
       range: [0.0, 5.0]
       description: この距離（HMD からキャストの口元まで）以内は距離減衰なし。rig の World Scale で実効距離が変わるため実機で詰める。
       ui: { kind: slider, step: 0.1, format: '{0:F2}m' }
@@ -1944,7 +1944,7 @@
     - name: VoiceMaxDistance
       label: 減衰しきる距離(m)
       type: float
-      default: 8.0
+      default: 4.0
       range: [1.0, 30.0]
       description: この距離以遠でボイスが減衰しきる（無音）。減衰開始距離との間は線形。キャストが遠いシーンで無音にならないよう実機で詰める。
       ui: { kind: slider, step: 0.5, format: '{0:F1}m' }
