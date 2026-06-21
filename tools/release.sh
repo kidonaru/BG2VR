@@ -114,11 +114,11 @@ gen_notes() {
     echo "- 初回リリース"
   fi
   echo
+  echo "---"
+  echo
   echo "インストール・機能・操作方法・設定・ビルド手順など、使い方はすべてドキュメントサイトにまとめています。"
   echo
   echo "📖 **https://kidonaru.github.io/BG2VR/**"
-  echo
-  echo "GPL v3 / source: https://github.com/kidonaru/BG2VR"
 }
 
 # annotated tag をローカルに作る（submodule SHA を固定）。push はしない。
