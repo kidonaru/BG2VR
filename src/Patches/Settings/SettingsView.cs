@@ -154,20 +154,35 @@ public class SettingsView : MonoBehaviour
         // テキスト上部が見切れる。header を flex-shrink:0 で保護し、超過分は body のみに吸収させる。
         header.style.flexShrink = 0;
 
+        // タイトル + バージョンを横並びでグループ化して左寄せを維持する
+        // （header は SpaceBetween。直接 3 要素を足すとバージョンが中央へ散るため）。
+        var titleGroup = new VisualElement();
+        titleGroup.style.flexDirection = FlexDirection.Row;
+        titleGroup.style.alignItems = Align.Center;
+        titleGroup.style.flexShrink = 0; // header と同じ防御。バージョン/ヒント増時もタイトル見切れを防ぐ
+
         var title = new Label("BG2VR 設定");
         title.style.color = new Color(0.84f, 0.87f, 0.91f, 1f);
         title.style.fontSize = 13;
         if (m_font != null) title.style.unityFont = m_font;
-        header.Add(title);
+        titleGroup.Add(title);
 
+        // MOD バージョン: タイトル右にアクセント色で添える（csproj <Version> 由来の静的定数）。
+        // 暗い青灰背景に映える淡ラベンダーで適度に目立たせる。
+        var version = new Label($"v{MyPluginInfo.PLUGIN_VERSION}");
+        version.style.color = new Color(0.80f, 0.70f, 0.95f, 1f);
+        version.style.fontSize = 11;
+        version.style.marginLeft = 6;
+        if (m_font != null) version.style.unityFont = m_font;
+        titleGroup.Add(version);
+
+        header.Add(titleGroup);
+
+        // パネル幅が狭いため閉じる手がかりの F10 のみ残す（↑↓/←→/Space/Tab は機能自体は維持）。
         var hints = new UITKeyCapRow();
         hints.Setup(new (string, string)[]
         {
-            ("F10",   "閉じる"),
-            ("↑↓",   "移動"),
-            ("←→",   "値"),
-            ("Space", "切替"),
-            ("Tab",   "カテゴリ"),
+            ("F10", "閉じる"),
         }, m_font);
         header.Add(hints);
         m_root.Add(header);
