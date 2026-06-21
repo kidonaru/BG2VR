@@ -8,7 +8,7 @@ namespace BunnyGarden2FixMod.ConfigGen;
 /// </summary>
 public static class MarkdownEmitter
 {
-    /// <param name="rootNs">プラグインのトップ namespace。cfg ファイル名 com.{rootNs}.cfg を組み立てる。</param>
+    /// <param name="rootNs">プラグインのトップ namespace。cfg ファイル名 {rootNs}.cfg を組み立てる（BG2VR は GUID=namespace=BG2VR）。</param>
     /// <param name="settingsHotkey">設定パネル開閉キー（FixMod=F9 / BG2VR=F10）。</param>
     public static string Emit(List<SectionDef> sections, string rootNs, string settingsHotkey)
     {
@@ -17,7 +17,7 @@ public static class MarkdownEmitter
         sb.AppendLine();
         sb.AppendLine("# Config 設定一覧");
         sb.AppendLine();
-        sb.AppendLine($"ゲームを一度起動すると `BepInEx/config/com.{rootNs}.cfg` が生成されます。");
+        sb.AppendLine($"ゲームを一度起動すると `BepInEx/config/{rootNs}.cfg` が生成されます。");
         sb.AppendLine($"メモ帳などで開いて以下の項目を変更するか、ゲーム起動中に **{settingsHotkey}** キーで設定パネルを開いて編集できます。");
         sb.AppendLine();
 

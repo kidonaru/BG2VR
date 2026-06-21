@@ -1,6 +1,6 @@
 # BG2VR の BepInEx Config 宣言（source of truth）。
 # tools/ConfigGen が MSBuild ビルド時に Generated/Configs.g.cs と docs/configs.md を生成する。
-# section/key は既存 .cfg（com.BG2VR.cfg）と一致を保つこと（旧 Bg2VrConfig からの移行互換）。
+# section/key は既存 .cfg（BG2VR.cfg）と一致を保つこと（旧 Bg2VrConfig からの移行互換）。
 # label は必須・name 直下。生成コードの XML doc と .cfg description 1 行目に使われる。
 # comfort スライダー本体（World Scale / 目の高さ）は UnityVRMod ConfigElement 直結のため
 # ここ（ConfigEntry 生成）には含めず、実行時に ComfortEntries で SettingsView へ注入する。

@@ -2,7 +2,7 @@
 
 # Config 設定一覧
 
-ゲームを一度起動すると `BepInEx/config/com.BG2VR.cfg` が生成されます。
+ゲームを一度起動すると `BepInEx/config/BG2VR.cfg` が生成されます。
 メモ帳などで開いて以下の項目を変更するか、ゲーム起動中に **F10** キーで設定パネルを開いて編集できます。
 
 ## [Comfort] VR Comfort
