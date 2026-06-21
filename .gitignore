@@ -7,6 +7,7 @@
 .idea/
 *.user
 *.suo
+.claude/
 
 # === システムファイル ===
 Thumbs.db
@@ -14,3 +15,4 @@ Thumbs.db
 
 # === ゲーム参照 DLL（再配布不可・初回 build 時に Managed から自動 populate） ===
 /Assembly/
+dist/
