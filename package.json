@@ -5,7 +5,10 @@
   "scripts": {
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "version:patch": "node tools/bump-version.mjs patch",
+    "version:minor": "node tools/bump-version.mjs minor",
+    "version:major": "node tools/bump-version.mjs major"
   },
   "devDependencies": {
     "vitepress": "^1.5.0"
