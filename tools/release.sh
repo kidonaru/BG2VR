@@ -43,6 +43,7 @@ parse_args() {
 # 公開前提を検査する。資産不足は常に致命、git 状態は本番時のみ致命。
 preflight() {
   # 資産検査（dry-run でも staging が壊れるので常に致命）
+  [[ -f "$REPO/README.md" ]]                || die "README.md がありません（zip 同梱物）"
   [[ -f "$REPO/LICENSE" ]]                  || die "LICENSE がありません（GPL v3 全文を配置してください）"
   [[ -f "$REPO/THIRD_PARTY_NOTICES.txt" ]]  || die "THIRD_PARTY_NOTICES.txt がありません"
   [[ -f "$PHONON" ]]                        || die "native/phonon.dll がありません（git lfs pull）"
@@ -89,7 +90,7 @@ stage_files() {
   cp "$FORK_OUT/openxr_loader.dll"                 "$plug/openxr_loader.dll"
   cp "$PHONON"                                     "$plug/phonon.dll"
   cp "$FORK_OUT/UnityGraphicsHelper.dll"           "$help/UnityGraphicsHelper.dll"
-  cp "$REPO/tools/release/README.txt"              "$STAGE/README.txt"
+  cp "$REPO/README.md"                             "$STAGE/README.md"
   cp "$REPO/LICENSE"                               "$STAGE/LICENSE"
   cp "$REPO/THIRD_PARTY_NOTICES.txt"               "$STAGE/THIRD_PARTY_NOTICES.txt"
 }
@@ -116,7 +117,7 @@ gen_notes() {
   echo "## インストール"
   echo "1. BepInEx 6 (Unity Mono) + Doorstop 4.5.0 導入済みの BUNNY GARDEN 2 を用意"
   echo "2. zip を BUNNY GARDEN 2 フォルダに解凍（BepInEx/ と BUNNY GARDEN 2_Data/ が自動配置）"
-  echo "   詳細は同梱 README.txt を参照。"
+  echo "   詳細は同梱 README.md を参照。"
   echo
   echo "GPL v3 / source: https://github.com/kidonaru/BG2VR"
 }
