@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 
 namespace BG2VR.ScenePinned
 {
@@ -14,26 +15,36 @@ namespace BG2VR.ScenePinned
         private readonly string m_path;
         private Dictionary<string, PinnedPose> m_poses = new Dictionary<string, PinnedPose>();
 
-        // 配布/新規環境向けの初期固定位置（ファイル未作成時にシード→materialize する）。
-        // 実機チューニング済みの基準値（採取 2026-06-19）。GameRoomScene の通常入室は未調整のため含めない
-        // （各ミニゲーム単位＝.HAND_SUMO/.CHEKI/.TWISTER/.KARUTA は調整済みで含める）＝通常入室は入場時カメラ追従。
-        // ユーザーが一度でも保存/消去すればファイルが存在し以後はそれが唯一の真＝この既定は上書きしない。
-        // Parse でそのまま復元するため整形 JSON で可読に保持する。
-        private const string DefaultPosesJson = @"{
-  ""version"": 1,
-  ""poses"": {
-    ""Talk2DScene"": { ""x"": -0.04806567, ""y"": -0.753840864, ""z"": 0.943841338, ""yaw"": 179.604874 },
-    ""HoleScene"": { ""x"": 0.111833528, ""y"": 0.6694112, ""z"": 2.29016614, ""yaw"": 214.4362 },
-    ""VipRoomScene"": { ""x"": -2.43037176, ""y"": 0.06902969, ""z"": -3.56335068, ""yaw"": 241.074036 },
-    ""VipRoomScene.KARAOKE"": { ""x"": -3.73395729, ""y"": 0.576210439, ""z"": -3.20451379, ""yaw"": 317.53772 },
-    ""GameRoomScene.HAND_SUMO"": { ""x"": -3.1706717, ""y"": 0.499099851, ""z"": -3.50250816, ""yaw"": 267.694122 },
-    ""VipRoomScene.AHHN_GAME"": { ""x"": -4.93070745, ""y"": 0.558600962, ""z"": -4.843435, ""yaw"": 225.558548 },
-    ""HoleScene.AHHN_GAME"": { ""x"": -0.01632461, ""y"": 0.712179661, ""z"": 2.1764853, ""yaw"": 217.155426 },
-    ""GameRoomScene.CHEKI"": { ""x"": -2.76772833, ""y"": 0.358624339, ""z"": -3.537246, ""yaw"": 273.2741 },
-    ""GameRoomScene.TWISTER"": { ""x"": -2.72274756, ""y"": 0.06297487, ""z"": -3.4721818, ""yaw"": 265.827026 },
-    ""GameRoomScene.KARUTA"": { ""x"": -2.934013, ""y"": -0.451829135, ""z"": -3.47705579, ""yaw"": 271.2976 }
-  }
-}";
+        // 配布/新規環境向けの初期固定位置は埋め込みリソース Resources/default_pinned_poses.json から読む
+        // （ファイル未作成時にシード→materialize）。ユーザーが一度でも保存/消去すればファイルが存在し
+        // 以後はそれが唯一の真＝この既定は上書きしない。同梱 shader/model と同じ manifest resource 方式。
+        private const string DefaultPosesResourceSuffix = "default_pinned_poses.json";
+
+        // 埋め込みリソースから既定固定位置 JSON を取り出す。取得できなければ null（呼び出し側で空シード扱い）。
+        private static string TryLoadDefaultPosesJson()
+        {
+            try
+            {
+                var asm = Assembly.GetExecutingAssembly();
+                string resName = null;
+                foreach (var n in asm.GetManifestResourceNames())
+                {
+                    if (n.EndsWith(DefaultPosesResourceSuffix)) { resName = n; break; }
+                }
+                if (resName == null) return null;
+                using (var s = asm.GetManifestResourceStream(resName))
+                {
+                    if (s == null) return null;
+                    using (var reader = new StreamReader(s))
+                        return reader.ReadToEnd();
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[ScenePinnedPose] 既定リソース読込で例外（空で継続）: {ex.Message}");
+                return null;
+            }
+        }
 
         public PinnedPoseStore(string path) { m_path = path; }
 
@@ -53,7 +64,16 @@ namespace BG2VR.ScenePinned
                 if (!File.Exists(m_path))
                 {
                     // ファイル未作成（初回/配布直後）: 既定の固定位置をシードして materialize する。
-                    m_poses = PinnedPoseCodec.Parse(DefaultPosesJson);
+                    string defaultJson = TryLoadDefaultPosesJson();
+                    if (defaultJson == null)
+                    {
+                        // リソース欠落＝ビルド構成（EmbeddedResource 漏れ）を疑う。空のまま継続し Save しない
+                        // （空ファイルで将来の修正を shadow しない＝次回起動で再シードを試みる）。
+                        Plugin.Log.LogWarning("[ScenePinnedPose] 既定固定位置リソースが見つからない（ビルド構成＝EmbeddedResource 漏れを疑え）。空で継続。");
+                        m_poses = new Dictionary<string, PinnedPose>();
+                        return;
+                    }
+                    m_poses = PinnedPoseCodec.Parse(defaultJson);
                     Plugin.Log.LogInfo($"[ScenePinnedPose] 固定位置ファイル未作成→既定 {m_poses.Count} 件をシードして作成: {m_path}");
                     Save();
                     return;

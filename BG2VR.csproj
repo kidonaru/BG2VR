@@ -60,6 +60,12 @@
     <EmbeddedResource Include="Resources\bg2vr_models" Condition="Exists('Resources\bg2vr_models')" />
   </ItemGroup>
 
+  <!-- ScenePinnedPose の配布既定固定位置（ファイル未作成時に seed する）。マニフェスト名 = BG2VR.Resources.default_pinned_poses.json。
+       JSON は常に git に存在しビルド時必在のため無条件 Include（bg2vr_models の Condition は bake 前不在対策で JSON には不要）。 -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\default_pinned_poses.json" />
+  </ItemGroup>
+
   <!-- ─── Config 自動生成（FixMod と同方式）。Configs.yaml → Generated/Configs.g.cs + docs/configs.md ─── -->
   <ItemGroup>
     <ConfigGenInputs Include="tools\ConfigGen\*.cs" />
