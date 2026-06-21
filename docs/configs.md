@@ -119,6 +119,22 @@
 | `FingerInitialCurlDeg` | `23` | 指の初期曲げ角(度)<br>人差し/中/薬/小指の入力0(指を離した状態)での各関節の曲げ角。最大曲げ角との間を押し込み量で補間。 |
 | `ThumbInitialCurlDeg` | `0` | 親指の初期曲げ角(度)<br>親指の入力0(離した状態)での各関節の曲げ角。親指の最大曲げ角との間を押し込み量で補間。 |
 | `FingerCurlSmoothTau` | `0.05` | 指の追従時定数(s)<br>指の曲げ追従の平滑時定数(秒)。大きいほどゆっくり。0でパススルー(平滑なし)。 |
+| `ShowDrinkGlass` | `true` | ドリンクグラス複製表示<br>NPCがグラス/カクテルを手に持っている間、設定手の手元モデルをハンドにして同じグラスの複製を持たせる。OFFで無効。 |
+| `DrinkGlassLeftHand` | `false` | グラスは左手<br>複製グラスを持つ手。OFF=右手 / ON=左手。位置補正は右手基準で定義しX反転で左手へ対称適用する。 |
+| `DrinkGlassUseGameMaterial` | `true` | 実マテリアルを使う<br>ON=ゲームの実マテリアルで描画(透明感が出る・既定)。OFF=不透明近似(ControllerUnlit+実テクスチャ/色)で確実に表示。環境によってはグラスのマテリアルがURP/LitでVR両眼で黒化しシェルが見えなくなるため、その場合はOFF。 |
+| `DrinkGlassPosOffsetX` | `0.045` | グラス位置補正X(m)<br>複製グラスの手元からの位置補正X(右+)。手の中の収まりを実機で詰める。 |
+| `DrinkGlassPosOffsetY` | `0.025` | グラス位置補正Y(m)<br>複製グラスの手元からの位置補正Y(上+)。 |
+| `DrinkGlassPosOffsetZ` | `0.055` | グラス位置補正Z(m)<br>複製グラスの手元からの位置補正Z(前+)。 |
+| `DrinkGlassRotOffsetX` | `70` | グラス回転補正X(度)<br>複製グラスの回転補正X(pitch)。メッシュ原点とgrip pose軸の差を実機で詰める。 |
+| `DrinkGlassRotOffsetY` | `17` | グラス回転補正Y(度)<br>複製グラスの回転補正Y(yaw)。 |
+| `DrinkGlassRotOffsetZ` | `0` | グラス回転補正Z(度)<br>複製グラスの回転補正Z(roll)。 |
+| `DrinkGlassScale` | `1.35` | グラス拡大率<br>複製グラスの拡大率。ベイクメッシュは実ゲーム単位＝1.0で実寸。大きすぎ/小さすぎる時に調整。 |
+| `DrinkGlassGripCurl` | `0.85` | グラスの握り具合<br>グラスを持つ手をハンドモデルにしたときの指の握り込み量（0=開き / 1=完全に握る）。グラスを握る見た目に調整する。要「指を曲げる」ON。 |
+
+## [MiniGame] ミニゲーム
+
+| キー | デフォルト | 説明 |
+|------|-----------|------|
 | `ShowChekiCamera` | `true` | Cheki カメラ化<br>Cheki ミニゲーム中、利き手の手元モデルを iPhone（スマホ）に自動スワップする。終了で自動復帰。要 ShowControllerModel=ON。 |
 | `ChekiCameraRightHand` | `true` | カメラを出す手は右<br>Cheki カメラを出す手(ON=右手/OFF=左手)。カメラ手はレーザーが消えるため、pose選択UIを操作する手と逆にする。 |
 | `CameraModelPosOffsetX` | `0.0` | カメラ位置補正X(m)<br>カメラモデルの手元からの位置補正X(右+)。モデル原点とOpenXR grip原点の差を実機で詰める。 |
@@ -201,17 +217,6 @@
 | `AhhnForCastEatDistance` | `0.02` | 食べさせ判定距離(m)<br>食べさせ側(ForCast)。食べ物先端とキャストの口がこの距離以内でトリガーすると成功。 |
 | `AhhnForPlayerEatDistance` | `0.15` | 食べる判定距離(m)<br>食べる側(ForPlayer)。差し出された食べ物先端と HMD(顔)がこの距離以内でトリガーすると成功。既定 0.15 は暫定（Task4 で foodTip↔HMD 実距離を計測して確定）。座位で頭が届かない場合に備えレンジ上限は広め。 |
 | `AhhnGripCurl` | `0.7` | 食べさせの握り具合<br>食べさせ側(ForCast)で右手をハンドモデルにしたときの指の握り込み量（0=開き / 1=完全に握る）。食べ物を持つ見た目に調整する。要「指を曲げる」ON。 |
-| `ShowDrinkGlass` | `true` | ドリンクグラス複製表示<br>NPCがグラス/カクテルを手に持っている間、設定手の手元モデルをハンドにして同じグラスの複製を持たせる。OFFで無効。 |
-| `DrinkGlassLeftHand` | `false` | グラスは左手<br>複製グラスを持つ手。OFF=右手 / ON=左手。位置補正は右手基準で定義しX反転で左手へ対称適用する。 |
-| `DrinkGlassUseGameMaterial` | `true` | 実マテリアルを使う<br>ON=ゲームの実マテリアルで描画(透明感が出る・既定)。OFF=不透明近似(ControllerUnlit+実テクスチャ/色)で確実に表示。環境によってはグラスのマテリアルがURP/LitでVR両眼で黒化しシェルが見えなくなるため、その場合はOFF。 |
-| `DrinkGlassPosOffsetX` | `0.045` | グラス位置補正X(m)<br>複製グラスの手元からの位置補正X(右+)。手の中の収まりを実機で詰める。 |
-| `DrinkGlassPosOffsetY` | `0.025` | グラス位置補正Y(m)<br>複製グラスの手元からの位置補正Y(上+)。 |
-| `DrinkGlassPosOffsetZ` | `0.055` | グラス位置補正Z(m)<br>複製グラスの手元からの位置補正Z(前+)。 |
-| `DrinkGlassRotOffsetX` | `70` | グラス回転補正X(度)<br>複製グラスの回転補正X(pitch)。メッシュ原点とgrip pose軸の差を実機で詰める。 |
-| `DrinkGlassRotOffsetY` | `17` | グラス回転補正Y(度)<br>複製グラスの回転補正Y(yaw)。 |
-| `DrinkGlassRotOffsetZ` | `0` | グラス回転補正Z(度)<br>複製グラスの回転補正Z(roll)。 |
-| `DrinkGlassScale` | `1.35` | グラス拡大率<br>複製グラスの拡大率。ベイクメッシュは実ゲーム単位＝1.0で実寸。大きすぎ/小さすぎる時に調整。 |
-| `DrinkGlassGripCurl` | `0.85` | グラスの握り具合<br>グラスを持つ手をハンドモデルにしたときの指の握り込み量（0=開き / 1=完全に握る）。グラスを握る見た目に調整する。要「指を曲げる」ON。 |
 | `KarutaStickEnabled` | `true` | カルタ取りをスティックに割当<br>カルタ合戦の札取りを左右スティックの4方向に割り当てる（左スティック=十字キーの札 / 右スティック=顔ボタンの札）。OFFで従来挙動のまま。 |
 | `KarutaStickThreshold` | `0.5` | カルタ取り判定しきい値<br>スティックを札取りと判定する倒し量。小さいほど浅い傾けで取れる。 |
 

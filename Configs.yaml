@@ -734,6 +734,106 @@
       description: 指の曲げ追従の平滑時定数(秒)。大きいほどゆっくり。0でパススルー(平滑なし)。
       ui: { kind: slider, step: 0.01, format: '{0:F2}s' }
 
+    # ── group: ドリンクグラス ────────────────
+    - name: ShowDrinkGlass
+      label: ドリンクグラス複製表示
+      group: ドリンクグラス
+      type: bool
+      default: true
+      description: NPCがグラス/カクテルを手に持っている間、設定手の手元モデルをハンドにして同じグラスの複製を持たせる。OFFで無効。
+      ui: { kind: toggle }
+
+    - name: DrinkGlassLeftHand
+      label: グラスは左手
+      group: ドリンクグラス
+      type: bool
+      default: false
+      description: 複製グラスを持つ手。OFF=右手 / ON=左手。位置補正は右手基準で定義しX反転で左手へ対称適用する。
+      ui: { kind: toggle }
+
+    - name: DrinkGlassUseGameMaterial
+      label: 実マテリアルを使う
+      group: ドリンクグラス
+      type: bool
+      default: true
+      description: ON=ゲームの実マテリアルで描画(透明感が出る・既定)。OFF=不透明近似(ControllerUnlit+実テクスチャ/色)で確実に表示。環境によってはグラスのマテリアルがURP/LitでVR両眼で黒化しシェルが見えなくなるため、その場合はOFF。
+      ui: { kind: toggle }
+
+    - name: DrinkGlassPosOffsetX
+      label: グラス位置補正X(m)
+      group: ドリンクグラス
+      type: float
+      default: 0.045
+      range: [-0.2, 0.2]
+      description: 複製グラスの手元からの位置補正X(右+)。手の中の収まりを実機で詰める。
+      ui: { kind: slider, step: 0.005, format: '{0:F3}m' }
+
+    - name: DrinkGlassPosOffsetY
+      label: グラス位置補正Y(m)
+      group: ドリンクグラス
+      type: float
+      default: 0.025
+      range: [-0.2, 0.2]
+      description: 複製グラスの手元からの位置補正Y(上+)。
+      ui: { kind: slider, step: 0.005, format: '{0:F3}m' }
+
+    - name: DrinkGlassPosOffsetZ
+      label: グラス位置補正Z(m)
+      group: ドリンクグラス
+      type: float
+      default: 0.055
+      range: [-0.2, 0.2]
+      description: 複製グラスの手元からの位置補正Z(前+)。
+      ui: { kind: slider, step: 0.005, format: '{0:F3}m' }
+
+    - name: DrinkGlassRotOffsetX
+      label: グラス回転補正X(度)
+      group: ドリンクグラス
+      type: float
+      default: 70
+      range: [-180, 180]
+      description: 複製グラスの回転補正X(pitch)。メッシュ原点とgrip pose軸の差を実機で詰める。
+      ui: { kind: slider, step: 1, format: '{0:F0}°' }
+
+    - name: DrinkGlassRotOffsetY
+      label: グラス回転補正Y(度)
+      group: ドリンクグラス
+      type: float
+      default: 17
+      range: [-180, 180]
+      description: 複製グラスの回転補正Y(yaw)。
+      ui: { kind: slider, step: 1, format: '{0:F0}°' }
+
+    - name: DrinkGlassRotOffsetZ
+      label: グラス回転補正Z(度)
+      group: ドリンクグラス
+      type: float
+      default: 0
+      range: [-180, 180]
+      description: 複製グラスの回転補正Z(roll)。
+      ui: { kind: slider, step: 1, format: '{0:F0}°' }
+
+    - name: DrinkGlassScale
+      label: グラス拡大率
+      group: ドリンクグラス
+      type: float
+      default: 1.35
+      range: [0.1, 3.0]
+      description: 複製グラスの拡大率。ベイクメッシュは実ゲーム単位＝1.0で実寸。大きすぎ/小さすぎる時に調整。
+      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
+
+    - name: DrinkGlassGripCurl
+      label: グラスの握り具合
+      group: ドリンクグラス
+      type: float
+      default: 0.85
+      range: [0.0, 1.0]
+      description: グラスを持つ手をハンドモデルにしたときの指の握り込み量（0=開き / 1=完全に握る）。グラスを握る見た目に調整する。要「指を曲げる」ON。
+      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
+
+- section: MiniGame
+  name: ミニゲーム
+  configs:
     - name: ShowChekiCamera
       label: Cheki カメラ化
       group: Cheki カメラ
@@ -1463,103 +1563,6 @@
       default: 0.7
       range: [0.0, 1.0]
       description: 食べさせ側(ForCast)で右手をハンドモデルにしたときの指の握り込み量（0=開き / 1=完全に握る）。食べ物を持つ見た目に調整する。要「指を曲げる」ON。
-      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
-
-    # ── group: ドリンクグラス ────────────────
-    - name: ShowDrinkGlass
-      label: ドリンクグラス複製表示
-      group: ドリンクグラス
-      type: bool
-      default: true
-      description: NPCがグラス/カクテルを手に持っている間、設定手の手元モデルをハンドにして同じグラスの複製を持たせる。OFFで無効。
-      ui: { kind: toggle }
-
-    - name: DrinkGlassLeftHand
-      label: グラスは左手
-      group: ドリンクグラス
-      type: bool
-      default: false
-      description: 複製グラスを持つ手。OFF=右手 / ON=左手。位置補正は右手基準で定義しX反転で左手へ対称適用する。
-      ui: { kind: toggle }
-
-    - name: DrinkGlassUseGameMaterial
-      label: 実マテリアルを使う
-      group: ドリンクグラス
-      type: bool
-      default: true
-      description: ON=ゲームの実マテリアルで描画(透明感が出る・既定)。OFF=不透明近似(ControllerUnlit+実テクスチャ/色)で確実に表示。環境によってはグラスのマテリアルがURP/LitでVR両眼で黒化しシェルが見えなくなるため、その場合はOFF。
-      ui: { kind: toggle }
-
-    - name: DrinkGlassPosOffsetX
-      label: グラス位置補正X(m)
-      group: ドリンクグラス
-      type: float
-      default: 0.045
-      range: [-0.2, 0.2]
-      description: 複製グラスの手元からの位置補正X(右+)。手の中の収まりを実機で詰める。
-      ui: { kind: slider, step: 0.005, format: '{0:F3}m' }
-
-    - name: DrinkGlassPosOffsetY
-      label: グラス位置補正Y(m)
-      group: ドリンクグラス
-      type: float
-      default: 0.025
-      range: [-0.2, 0.2]
-      description: 複製グラスの手元からの位置補正Y(上+)。
-      ui: { kind: slider, step: 0.005, format: '{0:F3}m' }
-
-    - name: DrinkGlassPosOffsetZ
-      label: グラス位置補正Z(m)
-      group: ドリンクグラス
-      type: float
-      default: 0.055
-      range: [-0.2, 0.2]
-      description: 複製グラスの手元からの位置補正Z(前+)。
-      ui: { kind: slider, step: 0.005, format: '{0:F3}m' }
-
-    - name: DrinkGlassRotOffsetX
-      label: グラス回転補正X(度)
-      group: ドリンクグラス
-      type: float
-      default: 70
-      range: [-180, 180]
-      description: 複製グラスの回転補正X(pitch)。メッシュ原点とgrip pose軸の差を実機で詰める。
-      ui: { kind: slider, step: 1, format: '{0:F0}°' }
-
-    - name: DrinkGlassRotOffsetY
-      label: グラス回転補正Y(度)
-      group: ドリンクグラス
-      type: float
-      default: 17
-      range: [-180, 180]
-      description: 複製グラスの回転補正Y(yaw)。
-      ui: { kind: slider, step: 1, format: '{0:F0}°' }
-
-    - name: DrinkGlassRotOffsetZ
-      label: グラス回転補正Z(度)
-      group: ドリンクグラス
-      type: float
-      default: 0
-      range: [-180, 180]
-      description: 複製グラスの回転補正Z(roll)。
-      ui: { kind: slider, step: 1, format: '{0:F0}°' }
-
-    - name: DrinkGlassScale
-      label: グラス拡大率
-      group: ドリンクグラス
-      type: float
-      default: 1.35
-      range: [0.1, 3.0]
-      description: 複製グラスの拡大率。ベイクメッシュは実ゲーム単位＝1.0で実寸。大きすぎ/小さすぎる時に調整。
-      ui: { kind: slider, step: 0.05, format: '{0:F2}' }
-
-    - name: DrinkGlassGripCurl
-      label: グラスの握り具合
-      group: ドリンクグラス
-      type: float
-      default: 0.85
-      range: [0.0, 1.0]
-      description: グラスを持つ手をハンドモデルにしたときの指の握り込み量（0=開き / 1=完全に握る）。グラスを握る見た目に調整する。要「指を曲げる」ON。
       ui: { kind: slider, step: 0.05, format: '{0:F2}' }
 
     # ── group: カルタ ────────────────
