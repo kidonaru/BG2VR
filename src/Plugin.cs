@@ -68,6 +68,9 @@ namespace BG2VR
             // FixMod FreeCamera ガード（reflection 解決＝PatchAll 対象外。FixMod 不在なら no-op）。
             BG2VR.Patches.FreeCameraVrGuard.TryInstall(harmony);
 
+            // Material clone leak 修正（シーンアンロード時の orphan 回収フック）。
+            BG2VR.LeakFix.MaterialCloneLeakPatches.Install();
+
             // patch 適用件数を検証。0 件なら TransitionGuard が機能せず遷移フリーズが再発するため明示する。
             int patched = harmony.GetPatchedMethods().Count();
             if (patched > 0)
