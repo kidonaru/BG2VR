@@ -125,6 +125,15 @@
       <HintPath>Assembly\Unity.ResourceManager.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- ScriptableRenderPass / ScriptableRendererFeature 用（加算ブレンド再描画の URP injection） -->
+    <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+      <HintPath>Assembly\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Core.Runtime">
+      <HintPath>Assembly\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- ゲーム参照 DLL（再配布不可）を Assembly/ に vendored snapshot として持つ。fresh clone 等で
@@ -133,7 +142,7 @@
        ＝ゲーム更新と独立に snapshot 維持。SkipUnchangedFiles は二重防御。再 populate は rm -rf Assembly/。
        参照解決（ResolveAssemblyReferences）前に走らせて HintPath を満たす。 -->
   <ItemGroup>
-    <GameAssembly Include="Assembly-CSharp;UniTask;Unity.InputSystem;UnityEngine.UI;Unity.Addressables;Unity.ResourceManager" />
+    <GameAssembly Include="Assembly-CSharp;UniTask;Unity.InputSystem;UnityEngine.UI;Unity.Addressables;Unity.ResourceManager;Unity.RenderPipelines.Universal.Runtime;Unity.RenderPipelines.Core.Runtime" />
   </ItemGroup>
   <Target Name="PopulateGameAssemblies" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>

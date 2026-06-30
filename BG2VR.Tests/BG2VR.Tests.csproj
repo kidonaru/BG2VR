@@ -103,6 +103,8 @@
     <Compile Include="../src/PostProcess/PostProcessPolicy.cs" Link="Linked/PostProcessPolicy.cs" />
     <Compile Include="../src/SpatialVoice/SpatialVoiceLogic.cs" Link="Linked/SpatialVoiceLogic.cs" />
     <Compile Include="../src/Locomotion/RecenterGesture.cs" Link="Linked/RecenterGesture.cs" />
+    <!-- UnityVRMod 側の純関数 (Round 9I bisect 用 enum + keyword mapping)。namespace は UnityVRMod.Features.VrVisualization.ShaderSimplification。 -->
+    <Compile Include="../UnityVRMod/src/Features/VRVisualization/ShaderSimplification/LitBisectVariant.cs" Link="Linked/LitBisectVariant.cs" />
   </ItemGroup>
 
 </Project>

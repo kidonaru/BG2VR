@@ -55,6 +55,7 @@ namespace BG2VR
             go.AddComponent<BG2VR.SpatialVoice.SpatialVoiceRunner>(); // VR 中、キャストのボイスを Steam Audio HRTF で空間化（本体 voice をミラー）。
             go.AddComponent<BG2VR.HandLighting.HandLightingRunner>(); // 手モデル専用 layer 28 を照らす自前 directional light（scene 光から isolation）。
             go.AddComponent<BG2VR.MouseSuppress.MouseSuppressionRunner>(); // VR 中の物理マウス無効化（UI/カメラがマウス座標に反応するのを止める）。
+            go.AddComponent<BG2VR.LeakFix.VrLeakFixRunnerBehaviour>(); // VR D3D12 NON_LOCAL leak 回避（Material clone で per-renderer instance 分離）。
 
             // 設定パネル（F10）。comfort スライダー（ConfigElement 直結）を注入してから初期化する。
             // 注: SetExtraEntries は SettingsController.Initialize より前に呼ぶ
