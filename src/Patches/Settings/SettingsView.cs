@@ -66,6 +66,9 @@ public class SettingsView : MonoBehaviour
     // キャプチャ中ヒント表示用 Label（BuildPanel で生成、非表示で待機）
     private Label m_captureHintLabel;
 
+    // ヘッダーのキーヒント行（設定トグルキーの Config 変更時に再描画するため参照保持）
+    private UITKeyCapRow m_headerHints;
+
     // 自前 tooltip 用フィールド（Unity UI Toolkit の tooltip プロパティは BepInEx ランタイムで表示されない）
     private Label m_tooltipLabel;
     private IVisualElementScheduledItem m_tooltipShowTimer;
@@ -178,13 +181,9 @@ public class SettingsView : MonoBehaviour
 
         header.Add(titleGroup);
 
-        // パネル幅が狭いため閉じる手がかりの F10 のみ残す（↑↓/←→/Space/Tab は機能自体は維持）。
-        var hints = new UITKeyCapRow();
-        hints.Setup(new (string, string)[]
-        {
-            ("F10", "閉じる"),
-        }, m_font);
-        header.Add(hints);
+        m_headerHints = new UITKeyCapRow();
+        UpdateHeaderHints();
+        header.Add(m_headerHints);
         m_root.Add(header);
 
         // ── 本体 (sidebar + content) ─────────
@@ -1093,7 +1092,18 @@ public class SettingsView : MonoBehaviour
     public void RequestRebuild()
     {
         // RenderContent はイベント発火中の VisualElement 破棄を避けるため次フレームに遅延する。
-        m_root?.schedule.Execute(() => RenderContent(resetScroll: false)).StartingIn(0);
+        m_root?.schedule.Execute(() =>
+        {
+            UpdateHeaderHints();
+            RenderContent(resetScroll: false);
+        }).StartingIn(0);
+    }
+
+    private void UpdateHeaderHints()
+    {
+        if (m_headerHints == null) return;
+        var keyName = Configs.SettingsToggle?.KeyConfig?.Value.ToString() ?? "F10";
+        m_headerHints.Setup(new (string, string)[] { (keyName, "閉じる") }, m_font);
     }
 
     // ── KeyBinding ヘルパ ──────────────────────────

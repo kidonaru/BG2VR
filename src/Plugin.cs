@@ -29,6 +29,9 @@ namespace BG2VR
             // 生成 config を bind（PatchAll / runner / パネルが Value を参照するため最初に）。
             global::BG2VR.Configs.BindAll(Config);
 
+            // セーフモードキーは BG2VR 側の HotkeyConfig で管理する。fork 側の重複処理を無効化。
+            UnityVRMod.Core.VRModKeybind.ExternallyManaged = true;
+
             // パネルのグループ折りたたみ状態を bind（必須: 未呼出だと IsCollapsed/SetCollapsed で NRE）。
             BG2VR.Patches.Settings.SettingsCollapseState.Init(Config);
 

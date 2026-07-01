@@ -83,6 +83,16 @@
       description: ON=シーン遷移のフェードイン開始（新シーン読込完了後）に VR rig を先行再 attach し、フェードインで新シーンを露出する（フェードインが旧シーンの凍結フレームを映し新シーンが完了後に pop する事象の解消）。OFF=従来動作（フェードイン完了後に再 attach）。変更は即時反映。
       ui: { kind: toggle }
 
+    - name: SafeModeToggle
+      label: セーフモード切替キー
+      key: SafeModeToggle
+      type: hotkey
+      defaultKey: F11
+      defaultButton: None
+      description: VR セーフモード（VR 描画の一時停止/再開）を切り替えるキー。
+      ui:
+        kind: keybinding
+
 - section: PostProcess
   name: ポストプロセス (VR)
   configs:
@@ -245,6 +255,16 @@
 - section: SettingsPanel
   name: 設定パネル (VR)
   configs:
+    - name: SettingsToggle
+      label: 設定パネル開閉キー
+      key: SettingsToggle
+      type: hotkey
+      defaultKey: F10
+      defaultButton: None
+      description: 設定パネルの開閉に使うキー。
+      ui:
+        kind: keybinding
+
     - name: SettingsPanelDistance
       label: 設定パネル距離(m)
       type: float
