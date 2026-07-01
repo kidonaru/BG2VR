@@ -179,11 +179,18 @@ public class SettingsController : MonoBehaviour
         var kb = Keyboard.current;
         if (kb == null) return;
 
-        // ── F10: 開閉トグル（FixMod の F9 パネルと非競合） ─────────────────
-        if (kb[Key.F10].wasPressedThisFrame)
+        // ── 設定パネル開閉トグル（既定 F10・Config UI で変更可） ─────────────────
+        if (Configs.SettingsToggle.IsKeyboardTriggered())
         {
             if (m_view.IsShown) m_view.Hide();
             else                m_view.Show();
+            return;
+        }
+
+        // ── セーフモード切替（既定 F11・Config UI で変更可） ─────────────────
+        if (Configs.SafeModeToggle.IsKeyboardTriggered())
+        {
+            UnityVRMod.Core.VRModCore.ToggleUserSafeMode();
             return;
         }
 
