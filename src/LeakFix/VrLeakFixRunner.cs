@@ -84,6 +84,7 @@ namespace BG2VR.LeakFix
                         UninstallHooks();
                         RemoveAdditiveFeature();
                         TransparentRedrawRunner.Uninstall();
+                        SpotLightRayRedrawRunner.Uninstall();
                         s_configEnabled = false;
                     }
                     return;
@@ -196,6 +197,7 @@ namespace BG2VR.LeakFix
         // --- Capture & Swap ---
 
         private static readonly HashSet<int> s_registeredMeshIds = new();
+        private static readonly HashSet<int> s_spotRegisteredMeshIds = new();
 
         private static void CaptureAndSwap()
         {
@@ -203,6 +205,7 @@ namespace BG2VR.LeakFix
 
             var allMR = Resources.FindObjectsOfTypeAll<MeshRenderer>();
             bool anyAdditiveRegistered = false;
+            bool anySpotLightRegistered = false;
 
             for (int i = 0; i < allMR.Length; i++)
             {
@@ -281,7 +284,8 @@ namespace BG2VR.LeakFix
                         MaterialsLength = mats.Length,
                         OrigSortingOrder = r.sortingOrder,
                         HasTransparent = needsSortingOrder,
-                        DisabledForAdditive = isAdditiveRenderer && additiveShader != null,
+                        // additive renderer は additiveShader の有無に関わらず必ず無効化するため、restore 判定も isAdditiveRenderer で持つ
+                        DisabledForAdditive = isAdditiveRenderer,
                     };
                     try { r.sharedMaterials = swapped; }
                     catch (Exception ex)
@@ -298,22 +302,34 @@ namespace BG2VR.LeakFix
                         r.sortingOrder = maxOrigRq - 2000;
                     }
 
-                    if (isAdditiveRenderer && additiveShader != null)
+                    if (isAdditiveRenderer)
                     {
                         var goName = r.gameObject?.name;
                         bool isSpotLight = goName != null && goName.Contains("SpotLight");
+                        // additive renderer は必ず scene draw から外す（orig-clone rQ=3000 の scene draw = leak trigger 回避）
                         r.enabled = false;
-                        if (!isSpotLight)
+                        if (isSpotLight)
+                        {
+                            // SpotLightRay は skybox 領域に重なり ZWrite On の ScriptableRenderPass では
+                            // 加算積算が壊れるため、endCameraRendering（skybox 後）で再描画する（Round 10K）。
+                            // clone を使うため additiveShader（bundle）に依存しない
+                            RegisterSpotLightRedraw(r, mats, clones);
+                            anySpotLightRegistered = true;
+                        }
+                        else if (additiveShader != null)
                         {
                             RegisterAdditiveMeshDraw(r, mats, additiveShader);
                             anyAdditiveRegistered = true;
                         }
+                        // additiveShader == null かつ非 SpotLight は redraw なし（従来どおり非表示・degraded だが leak-safe）
                     }
                 }
             }
 
             if (anyAdditiveRegistered)
                 TransparentRedrawRunner.Install();
+            if (anySpotLightRegistered)
+                SpotLightRayRedrawRunner.Install();
         }
 
         private static void RegisterAdditiveMeshDraw(MeshRenderer r, Material[] origMats, Shader additiveShader)
@@ -351,6 +367,48 @@ namespace BG2VR.LeakFix
                 TransparentRedrawRunner.RegisterMeshDraw(
                     r, mesh, r.localToWorldMatrix, redraw, origAdditiveMat.renderQueue, 0);
                 Plugin.Log.LogInfo($"[VrLeakFixRunner] additive DrawMesh 登録: {r.gameObject?.name}");
+            }
+        }
+
+        /// <summary>
+        /// SpotLightRay を endCameraRendering 再描画に登録する。
+        /// orig URP/Lit additive material の per-renderer clone をそのまま使う（renderQueue 不変・leak-safe。Round 10K）。
+        /// clone は s_captured[r].ClonedMaterials が所有するため SpotLightRayRedrawRunner 側では破棄しない。
+        /// dedup は additive-redraw（skybox 前 ScriptableRenderPass）とは別経路なので専用 set を使う
+        /// （s_registeredMeshIds を共有すると combined mesh 混載時に片方が mesh 丸ごと skip されうる）。
+        /// </summary>
+        private static void RegisterSpotLightRedraw(MeshRenderer r, Material[] origMats, Material[] cloneMats)
+        {
+            var mf = r.GetComponent<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null) return;
+            var mesh = mf.sharedMesh;
+
+            Material additiveClone = null;
+            for (int j = 0; j < origMats.Length; j++)
+            {
+                if (IsOrigUrpLit(origMats[j]) && IsAdditiveBlend(origMats[j]))
+                {
+                    // clone があればそれを使う（Round 10K で leak-safe 検証済）。
+                    // clone 生成失敗時のみ orig shared material に fallback（非 scene-draw なので理論上 leak-safe だが未検証）
+                    additiveClone = cloneMats[j] != null ? cloneMats[j] : origMats[j];
+                    break;
+                }
+            }
+            if (additiveClone == null) return;
+
+            if (r.isPartOfStaticBatch)
+            {
+                int meshId = mesh.GetInstanceID();
+                if (s_spotRegisteredMeshIds.Contains(meshId)) return;
+                s_spotRegisteredMeshIds.Add(meshId);
+                for (int s = 0; s < mesh.subMeshCount; s++)
+                    SpotLightRayRedrawRunner.Register(r, mesh, Matrix4x4.identity, additiveClone, s);
+                Plugin.Log.LogInfo($"[VrLeakFixRunner] SpotLightRay redraw 登録 (static batch): mesh={mesh.name} submeshes={mesh.subMeshCount}");
+            }
+            else
+            {
+                SpotLightRayRedrawRunner.Register(r, mesh, r.localToWorldMatrix, additiveClone, 0);
+                Plugin.Log.LogInfo($"[VrLeakFixRunner] SpotLightRay redraw 登録: {r.gameObject?.name}");
             }
         }
 
@@ -422,6 +480,7 @@ namespace BG2VR.LeakFix
                 }
             }
             TransparentRedrawRunner.PruneDeadEntries();
+            SpotLightRayRedrawRunner.PruneDeadEntries();
         }
 
         private static void RestoreAll(string reason)
@@ -451,7 +510,9 @@ namespace BG2VR.LeakFix
                 DestroyClones(state.ClonedMaterials);
             }
             TransparentRedrawRunner.ClearEntries();
+            SpotLightRayRedrawRunner.ClearEntries();
             s_registeredMeshIds.Clear();
+            s_spotRegisteredMeshIds.Clear();
             Plugin.Log.LogInfo($"[VrLeakFixRunner] {reason}: restored={s_captured.Count}");
         }
 
@@ -478,6 +539,7 @@ namespace BG2VR.LeakFix
             {
                 try { RestoreAll("app quit"); } catch { }
                 RemoveAdditiveFeature();
+                SpotLightRayRedrawRunner.Uninstall();
                 s_captured.Clear();
                 UninstallHooks();
             };
