@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- BepInEx Preloader Patcher: D3D12 初期化前に PIX の WinPixGpuCapturer.dll をロード。
+       dev 専用。ビルド後 BepInEx/patchers/ へ配置する。 -->
+  <PropertyGroup>
+    <TargetFramework>net46</TargetFramework>
+    <AssemblyName>PixLoaderPatcher</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.*" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

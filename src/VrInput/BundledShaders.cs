@@ -19,6 +19,7 @@ namespace BG2VR.VrInput
         private const string DepthOnlyName = "BG2VR/DepthOnly";
         private const string HandToonOverlayName = "BG2VR/HandToonOverlay";
         private const string ToonOutlineName = "BG2VR/ToonOutline";
+        private const string AdditiveRedrawName = "BG2VR/AdditiveRedraw";
 
         private static bool s_loaded;
         private static readonly Dictionary<string, Shader> s_byName = new Dictionary<string, Shader>();
@@ -38,13 +39,15 @@ namespace BG2VR.VrInput
         /// <summary>inverted-hull アウトライン shader（裏面を法線方向に膨張・solid 色・別レンダラーとして描画）。失敗時 null（アウトライン無し）。</summary>
         public static Shader ToonOutline => Get(ToonOutlineName);
 
+        /// <summary>加算透過材質の後段 redraw 用 URP 非依存 unlit additive shader。</summary>
+        public static Shader AdditiveRedraw => Get(AdditiveRedrawName);
+
         private static Shader Get(string name)
         {
             EnsureLoaded();
             return s_byName.TryGetValue(name, out var sh) ? sh : null;
         }
 
-        // 初回のみ bundle を展開し、supported な shader を name で辞書化（失敗も含め再試行しない＝決定的）。
         private static void EnsureLoaded()
         {
             if (s_loaded) return;
@@ -76,27 +79,29 @@ namespace BG2VR.VrInput
                         data = ms.ToArray();
                     }
                 }
-                // LoadFromMemory は同期・メインスレッド前提。bundle は Unload しない（shader を生かし続ける）。
                 AssetBundle bundle = AssetBundle.LoadFromMemory(data);
                 if (bundle == null)
                 {
                     Plugin.Log.LogWarning("[BundledShaders] shader bundle のロードに失敗。");
                     return;
                 }
-                // LoadAsset は shader 内部名で引けないため全件取得し name で辞書化（実行環境で非サポートは除外）。
                 Shader[] shaders = bundle.LoadAllAssets<Shader>();
                 if (shaders != null)
                 {
                     foreach (var sh in shaders)
                     {
-                        if (sh != null && sh.isSupported && !s_byName.ContainsKey(sh.name))
-                            s_byName[sh.name] = sh;
+                        if (sh == null || !sh.isSupported) continue;
+                        if (s_byName.ContainsKey(sh.name))
+                        {
+                            Plugin.Log.LogWarning($"[BundledShaders] 同名 shader が bundle に複数: '{sh.name}' (2 つ目以降は無視)");
+                            continue;
+                        }
+                        s_byName[sh.name] = sh;
                     }
                 }
                 if (s_byName.Count == 0)
                     Plugin.Log.LogWarning("[BundledShaders] bundle に利用可能な Shader が無い（非サポート/0 件）。");
                 else
-                    // bake 部分失敗（2 枚目が落ちる無音欠落）を実機ログで検出できるよう、件数と名前を必ず出す。
                     Plugin.Log.LogInfo($"[BundledShaders] {s_byName.Count} shader ロード: {string.Join(", ", new List<string>(s_byName.Keys).ToArray())}");
             }
             catch (System.Exception e)

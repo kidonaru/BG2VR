@@ -7,8 +7,6 @@ namespace BG2VR.Config
     /// <summary>
     /// SettingsView へ注入する VR 調整行（UnityVRMod ConfigElement 直結のスライダー / トグル）。
     /// ConfigGen 生成の UIEntries には含めず（ConfigEntry でないため）、実行時に注入する。
-    /// range/step/format は旧 bespoke ComfortPanel の値を踏襲（目の高さ下限は既定 -1.0m が
-    /// 張り付かないよう -1.5m へ拡張）。
     /// </summary>
     internal static class ComfortEntries
     {
@@ -46,9 +44,17 @@ namespace BG2VR.Config
                 Label = "アンチエイリアス",
                 Desc = "VR 映像の輪郭のジャギーを低減（MSAA）。高いほど滑らかだが GPU 負荷・VRAM 増。",
                 Kind = UIKind.Dropdown,
-                // DropdownOptions の順序は MsaaDropdownPolicy.Values {1,2,4,8} と一致させること
                 DropdownOptions = new[] { "オフ", "2x", "4x", "8x" },
                 Accessor = new VrModMsaaAccessor(ConfigManager.VrEyeMsaa),
+            },
+            new UIEntryMeta
+            {
+                Category = "Comfort",
+                Label = "GPU メモリ leak 修正",
+                Desc = "環境物の material を per-renderer clone して D3D12 共有 GPU メモリ leak を防ぐ。" +
+                       "見た目の変化なし。OFF にすると元の共有 material に戻るが leak が再開する。",
+                Kind = UIKind.Toggle,
+                Accessor = new VrModBoolAccessor(ConfigManager.OpenXR_LeakFixEnabled),
             },
         };
     }
