@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -75,6 +76,24 @@ namespace BG2VR.LeakFix
             }
         }
 
+        // eye camera（fork が手動 render する XrVrCamera_Left/Right・L/R の 2 個で永続）を参照でキャッシュし、
+        // 毎フレーム発火するホットパスでの cam.name string allocation を避ける。scene reload で eye camera が
+        // 破棄されるとスロットは Unity fake-null で「空き」判定になり、新 eye camera で自動的に上書きされる（self-heal）。
+        private static Camera s_eyeCamA;
+        private static Camera s_eyeCamB;
+
+        private static bool IsEyeCamera(Camera cam)
+        {
+            // 参照一致の fast-path（string alloc 無し）。cached camera が destroy 済みでも ReferenceEquals は不一致になり name 判定へ落ちる
+            if (ReferenceEquals(cam, s_eyeCamA) || ReferenceEquals(cam, s_eyeCamB)) return true;
+            var camName = cam.name; // fast-path 外でのみ alloc。Ordinal で culture 非依存比較
+            if (camName == null || !camName.StartsWith("XrVrCamera", StringComparison.Ordinal)) return false;
+            // 検証済みの eye camera を空きスロットへキャッシュ（fake-null スロットも空き扱い）
+            if (s_eyeCamA == null || ReferenceEquals(s_eyeCamA, cam)) s_eyeCamA = cam;
+            else s_eyeCamB = cam;
+            return true;
+        }
+
         /// <summary>
         /// eye camera（fork が手動 render する XrVrCamera_Left/Right）の render 完了直後に発火。
         /// skybox pass の後なので、加算光芒が skybox 領域でも消えずに正しく合成される。
@@ -84,8 +103,7 @@ namespace BG2VR.LeakFix
             if (s_entries.Count == 0 || s_cmd == null || cam == null) return;
 
             // eye camera のみ対象。UI / game / capture カメラは除外
-            var camName = cam.name;
-            if (camName == null || !camName.StartsWith("XrVrCamera")) return;
+            if (!IsEyeCamera(cam)) return;
 
             // eye RT が bind されている前提の描画（下記 ExecuteCommandBuffer は明示 SetRenderTarget を
             // 行わず「render 完了時に暗黙 bind 済みの eye RT + 行列」に依存する。Round 10K で実証。
@@ -97,17 +115,26 @@ namespace BG2VR.LeakFix
             // = 既存 additive redraw と同じ可視性ポリシー（EyeCullingCoordinator の void 状態 = layer 29+30 のみ）
             if ((cam.cullingMask & 1) == 0) return;
 
-            s_cmd.Clear();
-            for (int i = 0; i < s_entries.Count; i++)
+            // sibling の OnBeginCameraRendering / Tick と同じく best-effort。stale SubmeshIndex 等で DrawMesh が
+            // 例外を投げても毎フレーム spam させず、その frame の描画だけ諦める（ctx.Submit 未到達も許容）。
+            try
             {
-                var e = s_entries[i];
-                if (e.Mesh == null || e.Material == null) continue;
-                // pass 0 = URP/Lit ForwardLit。emission-only 材質なので lighting context 不在でも正しく描ける。
-                // material の ZWrite Off + Blend One One + ZTest LEqual で加算積算 + キャラ遮蔽。
-                s_cmd.DrawMesh(e.Mesh, e.Matrix, e.Material, e.SubmeshIndex, 0);
+                s_cmd.Clear();
+                for (int i = 0; i < s_entries.Count; i++)
+                {
+                    var e = s_entries[i];
+                    if (e.Mesh == null || e.Material == null) continue;
+                    // pass 0 = URP/Lit ForwardLit。emission-only 材質なので lighting context 不在でも正しく描ける。
+                    // material の ZWrite Off + Blend One One + ZTest LEqual で加算積算 + キャラ遮蔽。
+                    s_cmd.DrawMesh(e.Mesh, e.Matrix, e.Material, e.SubmeshIndex, 0);
+                }
+                ctx.ExecuteCommandBuffer(s_cmd);
+                ctx.Submit();
             }
-            ctx.ExecuteCommandBuffer(s_cmd);
-            ctx.Submit();
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[SpotLightRayRedrawRunner] OnEndCameraRendering 例外: {ex.Message}");
+            }
         }
     }
 }
