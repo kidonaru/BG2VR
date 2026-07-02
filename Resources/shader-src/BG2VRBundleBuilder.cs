@@ -11,7 +11,6 @@ public static class BG2VRBundleBuilder
     private const string DepthOnlyShaderPath = "Assets/BG2VRShaders/DepthOnly.shader";
     private const string HandToonOverlayShaderPath = "Assets/BG2VRShaders/HandToonOverlay.shader";
     private const string ToonOutlineShaderPath = "Assets/BG2VRShaders/ToonOutline.shader";
-    private const string AdditiveRedrawShaderPath = "Assets/BG2VRShaders/AdditiveRedraw.shader";
     private const string BundleName = "bg2vr_shaders";
 
     [MenuItem("BG2VR/Build Shader Bundle")]
@@ -27,7 +26,6 @@ public static class BG2VRBundleBuilder
             DepthOnlyShaderPath,
             HandToonOverlayShaderPath,
             ToonOutlineShaderPath,
-            AdditiveRedrawShaderPath,
         };
 
         var build = new AssetBundleBuild

@@ -41,7 +41,7 @@ namespace BG2VR.LeakFix
         private static PropertyInfo s_nrpProp; // RenderGraph.nativeRenderPassesEnabled
         private static bool s_reflectionResolved;
 
-        /// <summary>毎フレーム呼ぶ（VrLeakFixRunnerBehaviour.Update）。config edge で install / uninstall する。</summary>
+        /// <summary>毎フレーム呼ぶ（NativeRenderPassDisableRunnerBehaviour.Update）。config edge で install / uninstall する。</summary>
         internal static void Tick()
         {
             try
@@ -188,6 +188,15 @@ namespace BG2VR.LeakFix
                 if (rg != null) s_nrpProp.SetValue(rg, false);
             }
             catch { }
+        }
+    }
+
+    /// <summary>NativeRenderPassDisableRunner を毎フレーム駆動する MonoBehaviour（Plugin が 1 個生成）。</summary>
+    internal sealed class NativeRenderPassDisableRunnerBehaviour : MonoBehaviour
+    {
+        private void Update()
+        {
+            NativeRenderPassDisableRunner.Tick();
         }
     }
 }
