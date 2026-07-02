@@ -19,7 +19,6 @@ namespace BG2VR.VrInput
         private const string DepthOnlyName = "BG2VR/DepthOnly";
         private const string HandToonOverlayName = "BG2VR/HandToonOverlay";
         private const string ToonOutlineName = "BG2VR/ToonOutline";
-        private const string AdditiveRedrawName = "BG2VR/AdditiveRedraw";
 
         private static bool s_loaded;
         private static readonly Dictionary<string, Shader> s_byName = new Dictionary<string, Shader>();
@@ -38,9 +37,6 @@ namespace BG2VR.VrInput
 
         /// <summary>inverted-hull アウトライン shader（裏面を法線方向に膨張・solid 色・別レンダラーとして描画）。失敗時 null（アウトライン無し）。</summary>
         public static Shader ToonOutline => Get(ToonOutlineName);
-
-        /// <summary>加算透過材質の後段 redraw 用 URP 非依存 unlit additive shader。</summary>
-        public static Shader AdditiveRedraw => Get(AdditiveRedrawName);
 
         private static Shader Get(string name)
         {

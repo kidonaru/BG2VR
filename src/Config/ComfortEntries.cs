@@ -50,11 +50,11 @@ namespace BG2VR.Config
             new UIEntryMeta
             {
                 Category = "Comfort",
-                Label = "GPU メモリ leak 修正",
-                Desc = "環境物の material を per-renderer clone して D3D12 共有 GPU メモリ leak を防ぐ。" +
-                       "見た目の変化なし。OFF にすると元の共有 material に戻るが leak が再開する。",
+                Label = "NativeRenderPass 無効化",
+                Desc = "URP の D3D12 native render pass を無効化してエンジン起因の GPU メモリ leak" +
+                       "（Unity 6000.0.58f1〜0.61f1・62f1 で修正済）を止める。見た目の変化なし。OFF にすると leak が再開する。",
                 Kind = UIKind.Toggle,
-                Accessor = new VrModBoolAccessor(ConfigManager.OpenXR_LeakFixEnabled),
+                Accessor = new VrModBoolAccessor(ConfigManager.OpenXR_NativeRenderPassDisable),
             },
         };
     }
