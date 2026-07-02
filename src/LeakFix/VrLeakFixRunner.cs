@@ -578,6 +578,7 @@ namespace BG2VR.LeakFix
         {
             bool isVrSessionActive = VRModCore.IsVrActive && VRModCore.IsXrSessionRunning;
             VrLeakFixRunner.Tick(isVrSessionActive);
+            NativeRenderPassDisableRunner.Tick();
         }
     }
 }
